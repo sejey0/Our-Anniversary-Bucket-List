@@ -8,18 +8,12 @@ interface HeaderProps {
 
 export default function Header({ onLogout }: HeaderProps) {
   return (
-    <header className="glass sticky top-0 z-50 border-b border-rose/20">
+    <header className="sticky top-0 z-50 border-b border-rose/20" style={{ backgroundColor: '#b76e79' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-romantic flex items-center justify-center shadow-rose-md">
-            <span className="text-white text-lg">💝</span>
-          </div>
-          <div>
-            <h1 className="heading-cursive text-2xl text-gradient">
-              Our Bucket List
-            </h1>
-            <p className="text-xs text-rose-gold/60">Adventures await us</p>
-          </div>
+        <div>
+          <h1 className="heading-cursive text-2xl text-white">
+            Our Bucket List
+          </h1>
         </div>
 
         <button

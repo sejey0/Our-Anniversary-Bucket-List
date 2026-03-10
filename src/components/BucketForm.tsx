@@ -67,7 +67,7 @@ export default function BucketForm({
     setDescription(idea.description);
     setCategory(idea.category);
     setIsExpanded(true);
-    toast("Here's an idea for you! 💡", { icon: "🎲" });
+    toast("Here's an idea for you!", { icon: "🎲" });
   };
 
   return (
@@ -80,7 +80,7 @@ export default function BucketForm({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={
-                editItem ? "Edit title..." : "✨ Add a new dream to our list..."
+                editItem ? "Edit title..." : "Add a new dream to our list..."
               }
               className="input-field text-lg font-medium"
               onFocus={() => setIsExpanded(true)}
@@ -111,7 +111,7 @@ export default function BucketForm({
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                <label className="block text-xs font-semibold text-rose-gold/70 mb-1">
                   Category
                 </label>
                 <select
@@ -127,7 +127,7 @@ export default function BucketForm({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                <label className="block text-xs font-semibold text-rose-gold/70 mb-1">
                   Priority
                 </label>
                 <select
@@ -143,7 +143,7 @@ export default function BucketForm({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                <label className="block text-xs font-semibold text-rose-gold/70 mb-1">
                   Status
                 </label>
                 <select
@@ -159,7 +159,7 @@ export default function BucketForm({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                <label className="block text-xs font-semibold text-rose-gold/70 mb-1">
                   Target Date
                 </label>
                 <input
@@ -218,7 +218,7 @@ export default function BucketForm({
                 ) : editItem ? (
                   "Update"
                 ) : (
-                  "Add to List 💕"
+                  "Add to List"
                 )}
               </button>
             </div>

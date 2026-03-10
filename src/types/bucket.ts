@@ -44,39 +44,30 @@ export const PRIORITIES = ["High", "Medium", "Low"] as const;
 export type Priority = (typeof PRIORITIES)[number];
 
 export const CATEGORY_COLORS: Record<string, string> = {
-  Travel: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  Adventure:
-    "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
-  Learning:
-    "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  Personal: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  Career:
-    "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
-  Romance: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200",
-  Health:
-    "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200",
-  Creative:
-    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  Food: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-  Social: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200",
-  Financial: "bg-lime-100 text-lime-800 dark:bg-lime-900 dark:text-lime-200",
-  Other: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
+  Travel: "bg-blue-50 text-blue-700 border border-blue-200",
+  Adventure: "bg-orange-50 text-orange-700 border border-orange-200",
+  Learning: "bg-purple-50 text-purple-700 border border-purple-200",
+  Personal: "bg-petal text-rose-gold border border-rose/30",
+  Career: "bg-indigo-50 text-indigo-700 border border-indigo-200",
+  Romance: "bg-blush text-wine border border-rose/30",
+  Health: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  Creative: "bg-amber-50 text-amber-700 border border-amber-200",
+  Food: "bg-red-50 text-red-700 border border-red-200",
+  Social: "bg-cyan-50 text-cyan-700 border border-cyan-200",
+  Financial: "bg-lime-50 text-lime-700 border border-lime-200",
+  Other: "bg-gray-50 text-gray-600 border border-gray-200",
 };
 
 export const PRIORITY_COLORS: Record<string, string> = {
-  High: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
-  Medium:
-    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
-  Low: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  High: "bg-red-50 text-red-600 border border-red-200",
+  Medium: "bg-amber-50 text-amber-600 border border-amber-200",
+  Low: "bg-emerald-50 text-emerald-600 border border-emerald-200",
 };
 
 export const STATUS_COLORS: Record<string, string> = {
-  "Not Started":
-    "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-  "In Progress":
-    "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  Completed:
-    "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  "Not Started": "bg-gray-50 text-gray-600 border border-gray-200",
+  "In Progress": "bg-blue-50 text-blue-600 border border-blue-200",
+  Completed: "bg-petal text-rose-gold border border-rose/30",
 };
 
 export const CATEGORY_EMOJIS: Record<string, string> = {

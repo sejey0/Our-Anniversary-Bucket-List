@@ -11,19 +11,17 @@ export default function QuoteCard() {
   };
 
   return (
-    <div className="card animate-slide-up bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 border-pink-100 dark:border-pink-800/50">
+    <div className="card animate-slide-up bg-blush border-rose/20">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm italic text-slate-600 dark:text-slate-300 leading-relaxed">
+          <p className="text-sm italic text-wine/80 leading-relaxed">
             &ldquo;{quote.quote}&rdquo;
           </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-            — {quote.author}
-          </p>
+          <p className="text-xs text-rose-gold/60 mt-2">— {quote.author}</p>
         </div>
         <button
           onClick={refreshQuote}
-          className="p-2 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 text-slate-400 hover:text-pink-500 transition-colors flex-shrink-0 ml-2"
+          className="p-2 rounded-full hover:bg-white/50 text-rose-gold/50 hover:text-rose-gold transition-all duration-300 flex-shrink-0 ml-2"
           title="New quote"
         >
           <svg

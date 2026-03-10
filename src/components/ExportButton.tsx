@@ -19,12 +19,12 @@ export default function ExportButton({ items }: ExportButtonProps) {
 
       // Title
       doc.setFontSize(24);
-      doc.setTextColor(236, 72, 153);
+      doc.setTextColor(183, 110, 121);
       doc.text("Our Bucket List", 105, 20, { align: "center" });
 
       // Subtitle
       doc.setFontSize(10);
-      doc.setTextColor(100, 116, 139);
+      doc.setTextColor(114, 47, 55);
       doc.text(
         `${items.length} dreams | ${items.filter((i) => i.status === "Completed").length} completed`,
         105,
@@ -52,13 +52,13 @@ export default function ExportButton({ items }: ExportButtonProps) {
 
         // Title line
         doc.setFontSize(11);
-        doc.setTextColor(30, 41, 59);
+        doc.setTextColor(114, 47, 55);
         doc.text(`${statusIcon} ${index + 1}. ${item.title}`, 15, y);
         y += lineHeight * 0.7;
 
         // Details
         doc.setFontSize(8);
-        doc.setTextColor(100, 116, 139);
+        doc.setTextColor(183, 110, 121);
         const details = `${item.category} | ${item.priority} priority${item.target_date ? ` | Target: ${new Date(item.target_date).toLocaleDateString()}` : ""}`;
         doc.text(details, 25, y);
         y += lineHeight * 0.6;
@@ -73,7 +73,7 @@ export default function ExportButton({ items }: ExportButtonProps) {
 
       // Footer
       doc.setFontSize(8);
-      doc.setTextColor(148, 163, 184);
+      doc.setTextColor(232, 160, 160);
       doc.text(`Generated on ${new Date().toLocaleDateString()}`, 105, 290, {
         align: "center",
       });

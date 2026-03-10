@@ -16,18 +16,18 @@ interface CategoryChartProps {
 }
 
 const CHART_COLORS = [
-  "#3b82f6",
-  "#f97316",
-  "#a855f7",
-  "#22c55e",
-  "#6366f1",
-  "#ec4899",
-  "#10b981",
-  "#eab308",
-  "#ef4444",
-  "#06b6d4",
-  "#84cc16",
-  "#6b7280",
+  "#B76E79",
+  "#E8A0A0",
+  "#722F37",
+  "#D4878F",
+  "#C9868F",
+  "#F9E4E4",
+  "#9E5A63",
+  "#FDE8E8",
+  "#A0697E",
+  "#D9A0A0",
+  "#8B4553",
+  "#EBC4C4",
 ];
 
 export default function CategoryChart({ items }: CategoryChartProps) {
@@ -48,8 +48,8 @@ export default function CategoryChart({ items }: CategoryChartProps) {
 
   return (
     <div className="card animate-slide-up">
-      <h3 className="font-semibold text-slate-700 dark:text-slate-200 mb-4">
-        Categories Overview
+      <h3 className="heading-cursive text-2xl text-gradient mb-4">
+        Categories
       </h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
@@ -72,10 +72,11 @@ export default function CategoryChart({ items }: CategoryChartProps) {
             </Pie>
             <Tooltip
               contentStyle={{
-                backgroundColor: "rgba(255,255,255,0.95)",
-                borderRadius: "12px",
-                border: "none",
-                boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+                backgroundColor: "rgba(255,248,240,0.95)",
+                borderRadius: "24px",
+                border: "1px solid rgba(183,110,121,0.2)",
+                boxShadow: "0 4px 16px rgba(183,110,121,0.15)",
+                color: "#722F37",
               }}
             />
             <Legend />

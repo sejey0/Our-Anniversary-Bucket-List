@@ -8,40 +8,43 @@ module.exports = {
   darkMode: "class",
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-quicksand)", "Quicksand", "sans-serif"],
+        cursive: ["var(--font-great-vibes)", "Great Vibes", "cursive"],
+      },
       colors: {
-        primary: {
-          50: "#fdf2f8",
-          100: "#fce7f3",
-          200: "#fbcfe8",
-          300: "#f9a8d4",
-          400: "#f472b6",
-          500: "#ec4899",
-          600: "#db2777",
-          700: "#be185d",
-          800: "#9d174d",
-          900: "#831843",
+        cream: "#FFF8F0",
+        "rose-gold": {
+          DEFAULT: "#B76E79",
+          light: "#C9868F",
+          dark: "#9E5A63",
         },
-        accent: {
-          50: "#fff7ed",
-          100: "#ffedd5",
-          200: "#fed7aa",
-          300: "#fdba74",
-          400: "#fb923c",
-          500: "#f97316",
-          600: "#ea580c",
-          700: "#c2410c",
-          800: "#9a3412",
-          900: "#7c2d12",
-        },
+        blush: "#F9E4E4",
+        rose: "#E8A0A0",
+        petal: "#FDE8E8",
+        wine: "#722F37",
+      },
+      borderRadius: {
+        card: "24px",
+        pill: "9999px",
+      },
+      boxShadow: {
+        "rose-sm": "0 2px 8px rgba(183,110,121,0.12)",
+        "rose-md": "0 4px 16px rgba(183,110,121,0.2)",
+        "rose-lg": "0 8px 32px rgba(183,110,121,0.25)",
+        "rose-xl": "0 12px 48px rgba(183,110,121,0.3)",
       },
       animation: {
         "fade-in": "fadeIn 0.5s ease-in-out",
-        "slide-up": "slideUp 0.4s ease-out",
+        "slide-up": "slideUp 0.4s ease-out forwards",
         "slide-down": "slideDown 0.3s ease-out",
         "scale-in": "scaleIn 0.2s ease-out",
         "bounce-soft": "bounceSoft 0.6s ease-in-out",
         "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
         shimmer: "shimmer 2s linear infinite",
+        "float-heart": "floatHeart 6s ease-in-out infinite",
+        "float-heart-delay": "floatHeart 8s ease-in-out 2s infinite",
+        "float-heart-slow": "floatHeart 10s ease-in-out 4s infinite",
       },
       keyframes: {
         fadeIn: {
@@ -67,6 +70,15 @@ module.exports = {
         shimmer: {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
+        },
+        floatHeart: {
+          "0%": { transform: "translateY(100vh) rotate(0deg)", opacity: "0" },
+          "10%": { opacity: "0.6" },
+          "90%": { opacity: "0.6" },
+          "100%": {
+            transform: "translateY(-100vh) rotate(720deg)",
+            opacity: "0",
+          },
         },
       },
     },

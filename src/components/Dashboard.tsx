@@ -84,7 +84,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         body: JSON.stringify(itemData),
       });
       if (!res.ok) throw new Error("Failed to create");
-      toast.success("Dream added to the list! 💕");
+      toast.success("Dream added to the list!");
       fetchItems();
       fetchAllItems();
     } catch {
@@ -101,7 +101,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         body: JSON.stringify(itemData),
       });
       if (!res.ok) throw new Error("Failed to update");
-      toast.success("Item updated! ✨");
+      toast.success("Item updated!");
       setEditItem(null);
       fetchItems();
       fetchAllItems();
@@ -120,9 +120,9 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       });
       if (!res.ok) throw new Error("Failed to update");
       if (newStatus === "Completed") {
-        toast.success("Dream achieved! 🎉🥳", { duration: 3000 });
+        toast.success("Dream achieved!", { duration: 3000 });
       } else {
-        toast("Marked as not started", { icon: "↩️" });
+        toast("Marked as not started");
       }
       fetchItems();
       fetchAllItems();
@@ -177,10 +177,20 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative">
+      {/* Floating Hearts Background */}
+      <div className="floating-heart">&#x2665;</div>
+      <div className="floating-heart">&#x2665;</div>
+      <div className="floating-heart">&#x2665;</div>
+      <div className="floating-heart">&#x2665;</div>
+      <div className="floating-heart">&#x2665;</div>
+      <div className="floating-heart">&#x2665;</div>
+      <div className="floating-heart">&#x2665;</div>
+      <div className="floating-heart">&#x2665;</div>
+
       <Header onLogout={onLogout} />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 relative z-10">
         {/* Quote */}
         <QuoteCard />
 
@@ -193,7 +203,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         {/* Add/Edit Form */}
         {editItem ? (
           <div>
-            <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-2">
+            <h2 className="heading-cursive text-2xl text-gradient mb-2">
               Edit Item
             </h2>
             <BucketForm
@@ -208,7 +218,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
         {/* Export and share */}
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-200">
+          <h2 className="heading-cursive text-2xl text-gradient">
             Our Dreams ({items.length})
           </h2>
           <ExportButton items={allItems} />
@@ -233,15 +243,13 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         {/* Bucket List Items */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-12 h-12 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
-            <p className="mt-4 text-slate-500 dark:text-slate-400">
-              Loading your dreams...
-            </p>
+            <div className="w-12 h-12 border-4 border-petal border-t-rose-gold rounded-full animate-spin" />
+            <p className="mt-4 text-rose-gold/60">Loading your dreams...</p>
           </div>
         ) : items.length === 0 ? (
           <div className="text-center py-20 animate-fade-in">
-            <div className="text-6xl mb-4">🌟</div>
-            <h3 className="text-xl font-semibold text-slate-600 dark:text-slate-300 mb-2">
+            <div className="text-6xl mb-4">&#x2665;</div>
+            <h3 className="heading-cursive text-3xl text-gradient mb-2">
               {search ||
               categoryFilter !== "All" ||
               statusFilter !== "All" ||
@@ -249,7 +257,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                 ? "No items match your filters"
                 : "No dreams yet!"}
             </h3>
-            <p className="text-slate-500 dark:text-slate-400">
+            <p className="text-rose-gold/60">
               {search ||
               categoryFilter !== "All" ||
               statusFilter !== "All" ||
@@ -283,7 +291,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                             {sortBy === "sort_order" && (
                               <div
                                 {...provided.dragHandleProps}
-                                className="mt-6 p-1 cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                className="mt-6 p-1 cursor-grab active:cursor-grabbing text-rose/40 hover:text-rose-gold transition-colors duration-300"
                               >
                                 <svg
                                   className="w-5 h-5"
@@ -323,8 +331,10 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       </main>
 
       {/* Footer */}
-      <footer className="text-center py-8 text-sm text-slate-400 dark:text-slate-500">
-        Made with 💕 for our adventures together
+      <footer className="text-center py-8 text-sm text-rose-gold/50 relative z-10">
+        <p className="heading-cursive text-lg">
+          Made with love for our adventures together
+        </p>
       </footer>
     </div>
   );

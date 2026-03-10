@@ -53,19 +53,19 @@ export default function BucketCard({
   return (
     <div
       className={`card card-hover group transition-all duration-300 ${
-        isDragging ? "shadow-2xl scale-[1.02] rotate-1" : ""
-      } ${isCompleted ? "opacity-75" : ""} ${
-        isOverdue() ? "border-red-300 dark:border-red-700" : ""
-      } ${isApproaching() ? "border-yellow-300 dark:border-yellow-700" : ""}`}
+        isDragging ? "shadow-rose-xl scale-[1.02] rotate-1" : ""
+      } ${isCompleted ? "opacity-60" : ""} ${
+        isOverdue() ? "border-red-300" : ""
+      } ${isApproaching() ? "border-amber-300" : ""}`}
     >
       <div className="flex items-start gap-3">
         {/* Checkbox */}
         <button
           onClick={() => onToggleComplete(item)}
-          className={`mt-0.5 w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+          className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
             isCompleted
-              ? "bg-gradient-to-br from-green-400 to-emerald-500 border-green-500 text-white"
-              : "border-slate-300 dark:border-slate-600 hover:border-pink-400 dark:hover:border-pink-500"
+              ? "bg-gradient-romantic border-rose-gold text-white"
+              : "border-rose/40 hover:border-rose-gold"
           }`}
         >
           {isCompleted && (
@@ -89,20 +89,18 @@ export default function BucketCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <h3
-              className={`font-semibold text-slate-800 dark:text-slate-100 ${
-                isCompleted
-                  ? "line-through text-slate-500 dark:text-slate-400"
-                  : ""
+              className={`font-semibold text-wine ${
+                isCompleted ? "line-through text-rose-gold/50" : ""
               }`}
             >
               {CATEGORY_EMOJIS[item.category] || "📌"} {item.title}
             </h3>
 
             {/* Actions */}
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 flex-shrink-0">
               <button
                 onClick={() => onEdit(item)}
-                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500 transition-colors"
+                className="p-1.5 rounded-full hover:bg-blush text-rose/50 hover:text-rose-gold transition-all duration-300"
                 title="Edit"
               >
                 <svg
@@ -123,13 +121,13 @@ export default function BucketCard({
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => onDelete(item.id)}
-                    className="p-1.5 rounded-lg bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 text-xs font-medium"
+                    className="p-1.5 rounded-pill bg-red-50 text-red-600 text-xs font-semibold border border-red-200"
                   >
                     Confirm
                   </button>
                   <button
                     onClick={() => setShowConfirmDelete(false)}
-                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 text-xs"
+                    className="p-1.5 rounded-pill hover:bg-blush text-rose/50 text-xs"
                   >
                     Cancel
                   </button>
@@ -137,7 +135,7 @@ export default function BucketCard({
               ) : (
                 <button
                   onClick={() => setShowConfirmDelete(true)}
-                  className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-colors"
+                  className="p-1.5 rounded-full hover:bg-red-50 text-rose/50 hover:text-red-500 transition-all duration-300"
                   title="Delete"
                 >
                   <svg
@@ -160,7 +158,7 @@ export default function BucketCard({
 
           {item.description && (
             <p
-              className={`text-sm text-slate-500 dark:text-slate-400 mt-1 ${isCompleted ? "line-through" : ""}`}
+              className={`text-sm text-rose-gold/60 mt-1 ${isCompleted ? "line-through" : ""}`}
             >
               {item.description}
             </p>
@@ -183,13 +181,13 @@ export default function BucketCard({
               <span
                 className={`badge ${
                   isOverdue()
-                    ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                    ? "bg-red-50 text-red-600 border border-red-200"
                     : isApproaching()
-                      ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
-                      : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                      ? "bg-amber-50 text-amber-600 border border-amber-200"
+                      : "bg-petal text-rose-gold/70 border border-rose/20"
                 }`}
               >
-                📅 {formatDate(item.target_date)}
+                {formatDate(item.target_date)}
                 {isOverdue() && " (overdue)"}
                 {isApproaching() && " (soon!)"}
               </span>

@@ -29,32 +29,38 @@ export default function SharePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-cream">
+        <div className="w-12 h-12 border-4 border-petal border-t-rose-gold rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen py-8 px-4">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen py-8 px-4 relative">
+      {/* Floating hearts */}
+      <div className="floating-heart">&#x2665;</div>
+      <div className="floating-heart">&#x2665;</div>
+      <div className="floating-heart">&#x2665;</div>
+      <div className="floating-heart">&#x2665;</div>
+
+      <div className="max-w-3xl mx-auto relative z-10">
         {/* Header */}
         <div className="text-center mb-8 animate-fade-in">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shadow-xl shadow-pink-500/25 mb-4">
+          <div className="w-16 h-16 mx-auto rounded-full bg-gradient-romantic flex items-center justify-center shadow-rose-lg mb-4">
             <span className="text-3xl">💝</span>
           </div>
-          <h1 className="text-3xl font-bold text-gradient mb-2">
+          <h1 className="heading-cursive text-5xl text-gradient mb-2">
             Our Bucket List
           </h1>
-          <p className="text-slate-500 dark:text-slate-400">
+          <p className="text-rose-gold/60">
             {items.length} dreams | {completed} completed | {percentage}% done
           </p>
         </div>
 
         {/* Progress bar */}
-        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 mb-8 overflow-hidden">
+        <div className="w-full bg-petal rounded-pill h-3 mb-8 overflow-hidden">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-pink-500 to-rose-500 transition-all duration-700"
+            className="h-full rounded-pill bg-gradient-romantic transition-all duration-700"
             style={{ width: `${percentage}%` }}
           />
         </div>
@@ -64,14 +70,14 @@ export default function SharePage() {
           {items.map((item) => (
             <div
               key={item.id}
-              className={`card animate-slide-up ${item.status === "Completed" ? "opacity-70" : ""}`}
+              className={`card animate-slide-up ${item.status === "Completed" ? "opacity-60" : ""}`}
             >
               <div className="flex items-start gap-3">
                 <div
-                  className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                  className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
                     item.status === "Completed"
-                      ? "bg-gradient-to-br from-green-400 to-emerald-500 border-green-500 text-white"
-                      : "border-slate-300 dark:border-slate-600"
+                      ? "bg-gradient-romantic border-rose-gold text-white"
+                      : "border-rose/40"
                   }`}
                 >
                   {item.status === "Completed" && (
@@ -94,14 +100,14 @@ export default function SharePage() {
                   <h3
                     className={`font-semibold ${
                       item.status === "Completed"
-                        ? "line-through text-slate-500"
-                        : "text-slate-800 dark:text-slate-100"
+                        ? "line-through text-rose-gold/50"
+                        : "text-wine"
                     }`}
                   >
                     {CATEGORY_EMOJIS[item.category] || "📌"} {item.title}
                   </h3>
                   {item.description && (
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    <p className="text-sm text-rose-gold/60 mt-1">
                       {item.description}
                     </p>
                   )}
@@ -125,13 +131,15 @@ export default function SharePage() {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-8 text-sm text-slate-400">
-          <p>Made with 💕 for our adventures together</p>
+        <div className="text-center mt-8">
+          <p className="heading-cursive text-lg text-rose-gold/50">
+            Made with love for our adventures together
+          </p>
           <a
             href="/"
-            className="text-pink-500 hover:text-pink-600 mt-2 inline-block"
+            className="text-rose-gold hover:text-wine mt-2 inline-block text-sm transition-colors duration-300"
           >
-            Go to full app →
+            Go to full app
           </a>
         </div>
       </div>

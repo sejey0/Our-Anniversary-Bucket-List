@@ -11,12 +11,12 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-cream">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shadow-xl shadow-pink-500/25 mb-4 animate-pulse-slow">
+          <div className="w-16 h-16 mx-auto rounded-full bg-gradient-romantic flex items-center justify-center shadow-rose-lg mb-4 animate-pulse-slow">
             <span className="text-3xl">💝</span>
           </div>
-          <div className="w-8 h-8 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin mx-auto" />
+          <div className="w-8 h-8 border-4 border-petal border-t-rose-gold rounded-full animate-spin mx-auto" />
         </div>
       </div>
     );
@@ -29,12 +29,14 @@ export default function Home() {
         toastOptions={{
           duration: 3000,
           style: {
-            background: "#fff",
-            color: "#1e293b",
-            borderRadius: "12px",
-            padding: "12px 16px",
-            boxShadow: "0 10px 25px -5px rgba(0,0,0,0.1)",
+            background: "#FFF8F0",
+            color: "#722F37",
+            borderRadius: "9999px",
+            padding: "12px 20px",
+            boxShadow: "0 4px 16px rgba(183,110,121,0.2)",
             fontSize: "14px",
+            fontFamily: "var(--font-quicksand), Quicksand, sans-serif",
+            border: "1px solid rgba(183,110,121,0.15)",
           },
         }}
       />

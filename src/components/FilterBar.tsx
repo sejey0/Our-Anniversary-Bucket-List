@@ -38,7 +38,7 @@ export default function FilterBar({
         {/* Search bar */}
         <div className="relative">
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-rose/50"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={1.5}
@@ -54,7 +54,7 @@ export default function FilterBar({
             type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search bucket items..."
+            placeholder="Search our dreams..."
             className="input-field pl-10"
           />
         </div>
@@ -64,7 +64,7 @@ export default function FilterBar({
           <select
             value={categoryFilter}
             onChange={(e) => onCategoryChange(e.target.value)}
-            className="input-field text-sm py-2"
+            className="input-field text-sm py-2 rounded-pill"
           >
             <option value="All">All Categories</option>
             {CATEGORIES.map((cat) => (
@@ -77,7 +77,7 @@ export default function FilterBar({
           <select
             value={statusFilter}
             onChange={(e) => onStatusChange(e.target.value)}
-            className="input-field text-sm py-2"
+            className="input-field text-sm py-2 rounded-pill"
           >
             <option value="All">All Statuses</option>
             {STATUSES.map((s) => (
@@ -90,7 +90,7 @@ export default function FilterBar({
           <select
             value={priorityFilter}
             onChange={(e) => onPriorityChange(e.target.value)}
-            className="input-field text-sm py-2"
+            className="input-field text-sm py-2 rounded-pill"
           >
             <option value="All">All Priorities</option>
             {PRIORITIES.map((p) => (
@@ -103,7 +103,7 @@ export default function FilterBar({
           <select
             value={sortBy}
             onChange={(e) => onSortByChange(e.target.value)}
-            className="input-field text-sm py-2"
+            className="input-field text-sm py-2 rounded-pill"
           >
             <option value="sort_order">Custom Order</option>
             <option value="created_at">Date Created</option>
@@ -116,7 +116,7 @@ export default function FilterBar({
           <select
             value={sortOrder}
             onChange={(e) => onSortOrderChange(e.target.value)}
-            className="input-field text-sm py-2"
+            className="input-field text-sm py-2 rounded-pill"
           >
             <option value="asc">Ascending</option>
             <option value="desc">Descending</option>

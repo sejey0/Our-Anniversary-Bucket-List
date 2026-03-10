@@ -30,6 +30,10 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   const [uploadingItemId, setUploadingItemId] = useState<string | null>(null);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
   const [viewingGallery, setViewingGallery] = useState<BucketList | null>(null);
+  const [renamingList, setRenamingList] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [deletingList, setDeletingList] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load custom bucket lists from localStorage
@@ -81,8 +85,29 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   };
 
   const handleDeleteList = (id: string) => {
+    if (deleteConfirm.toLowerCase() !== "i love you") {
+      toast.error("Type 'i love you' to confirm deletion");
+      return;
+    }
     saveBucketLists(bucketLists.filter((l) => l.id !== id));
+    setDeletingList(null);
+    setDeleteConfirm("");
     toast.success("Bucket list removed");
+  };
+
+  const handleRenameList = (id: string) => {
+    if (!renameValue.trim()) {
+      toast.error("Name cannot be empty");
+      return;
+    }
+    saveBucketLists(
+      bucketLists.map((l) =>
+        l.id === id ? { ...l, name: renameValue.trim() } : l
+      )
+    );
+    setRenamingList(null);
+    setRenameValue("");
+    toast.success("Renamed!");
   };
 
   const handleAddItem = async (category: string) => {
@@ -313,36 +338,152 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                 <div key={list.id} className="card flex flex-col">
                   {/* Card Header */}
                   <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h2 className="text-base font-bold text-gradient">
-                        {list.name}
-                      </h2>
-                      {list.description && (
-                        <p className="text-xs text-rose-gold/50 mt-0.5">
-                          {list.description}
-                        </p>
+                    <div className="flex-1 min-w-0">
+                      {renamingList === list.id ? (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleRenameList(list.id);
+                          }}
+                          className="flex gap-2"
+                        >
+                          <input
+                            type="text"
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            className="input-field flex-1 text-sm py-1"
+                            autoFocus
+                          />
+                          <button
+                            type="submit"
+                            className="btn-primary text-xs px-3 py-1"
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRenamingList(null);
+                              setRenameValue("");
+                            }}
+                            className="text-xs px-2 py-1 rounded-pill border border-rose/20 hover:bg-blush transition-all duration-300"
+                            style={{ color: "#b76e79" }}
+                          >
+                            Cancel
+                          </button>
+                        </form>
+                      ) : (
+                        <>
+                          <h2 className="text-base font-bold text-gradient">
+                            {list.name}
+                          </h2>
+                          {list.description && (
+                            <p className="text-xs text-rose-gold/50 mt-0.5">
+                              {list.description}
+                            </p>
+                          )}
+                        </>
                       )}
                     </div>
-                    <button
-                      onClick={() => handleDeleteList(list.id)}
-                      className="text-rose/30 hover:text-wine transition-colors duration-300"
-                      title="Delete bucket list"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={1.5}
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
+                    {renamingList !== list.id && (
+                      <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                        {/* Rename */}
+                        <button
+                          onClick={() => {
+                            setRenamingList(list.id);
+                            setRenameValue(list.name);
+                          }}
+                          className="p-1 rounded-lg hover:bg-blush/50 transition-all duration-300"
+                          style={{ color: "#b76e79" }}
+                          title="Rename"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.5}
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"
+                            />
+                          </svg>
+                        </button>
+                        {/* Delete */}
+                        <button
+                          onClick={() => {
+                            setDeletingList(list.id);
+                            setDeleteConfirm("");
+                          }}
+                          className="p-1 rounded-lg hover:bg-red-50 transition-all duration-300"
+                          style={{ color: "#722f37" }}
+                          title="Delete"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.5}
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Delete Confirmation */}
+                  {deletingList === list.id && (
+                    <div
+                      className="mb-3 p-3 rounded-xl"
+                      style={{ border: "1px solid rgba(114,47,55,0.2)", backgroundColor: "rgba(114,47,55,0.05)" }}
+                    >
+                      <p className="text-xs mb-2" style={{ color: "#722f37" }}>
+                        Type <strong>i love you</strong> to confirm deletion
+                      </p>
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleDeleteList(list.id);
+                        }}
+                        className="flex gap-2"
+                      >
+                        <input
+                          type="text"
+                          value={deleteConfirm}
+                          onChange={(e) => setDeleteConfirm(e.target.value)}
+                          placeholder="i love you"
+                          className="input-field flex-1 text-sm py-1.5"
+                          autoFocus
+                        />
+                        <button
+                          type="submit"
+                          className="text-xs px-3 py-1.5 rounded-pill text-white transition-all duration-300"
+                          style={{ backgroundColor: "#722f37" }}
+                        >
+                          Delete
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeletingList(null);
+                            setDeleteConfirm("");
+                          }}
+                          className="text-xs px-3 py-1.5 rounded-pill border border-rose/20 hover:bg-blush transition-all duration-300"
+                          style={{ color: "#b76e79" }}
+                        >
+                          Cancel
+                        </button>
+                      </form>
+                    </div>
+                  )}
 
                   {/* Stats */}
                   <div className="flex items-center gap-3 mb-3">

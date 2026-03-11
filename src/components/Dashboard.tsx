@@ -535,7 +535,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     const desc = newDescription.trim();
     setItems((prev) =>
       prev.map((i) =>
-        i.id === itemId ? { ...i, description: desc || null } : i,
+        i.id === itemId ? { ...i, description: desc || "" } : i,
       ),
     );
     if (viewingGalleryItem && viewingGalleryItem.id === itemId) {

@@ -10,6 +10,7 @@ interface BucketList {
   id: string;
   name: string;
   description: string;
+  created_at: string;
 }
 
 interface DashboardProps {
@@ -37,6 +38,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     useState<BucketItem | null>(null);
   const [renamingList, setRenamingList] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [renameDesc, setRenameDesc] = useState("");
   const [deletingList, setDeletingList] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [completingItem, setCompletingItem] = useState<BucketItem | null>(null);
@@ -203,17 +205,21 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     const original = bucketLists;
     const oldName = bucketLists.find((l) => l.id === id)?.name;
     const newName = renameValue.trim();
+    const newDesc = renameDesc.trim();
     setBucketLists(
-      bucketLists.map((l) => (l.id === id ? { ...l, name: newName } : l)),
+      bucketLists.map((l) =>
+        l.id === id ? { ...l, name: newName, description: newDesc } : l,
+      ),
     );
     setRenamingList(null);
     setRenameValue("");
-    toast.success("Renamed!");
+    setRenameDesc("");
+    toast.success("Updated!");
     try {
       const res = await fetch(`/api/lists/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName }),
+        body: JSON.stringify({ name: newName, description: newDesc }),
       });
       if (!res.ok) throw new Error("Failed to rename");
       // Update items' category to match new name
@@ -644,32 +650,43 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                 e.preventDefault();
                                 handleRenameList(list.id);
                               }}
-                              className="flex gap-2"
+                              className="space-y-2"
                             >
                               <input
                                 type="text"
                                 value={renameValue}
                                 onChange={(e) => setRenameValue(e.target.value)}
-                                className="input-field flex-1 text-sm py-1"
+                                placeholder="Name"
+                                className="input-field w-full text-sm py-1"
                                 autoFocus
                               />
-                              <button
-                                type="submit"
-                                className="btn-primary text-xs px-3 py-1"
-                              >
-                                Save
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setRenamingList(null);
-                                  setRenameValue("");
-                                }}
-                                className="text-xs px-2 py-1 rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
-                                style={{ color: "#b76e79" }}
-                              >
-                                Cancel
-                              </button>
+                              <input
+                                type="text"
+                                value={renameDesc}
+                                onChange={(e) => setRenameDesc(e.target.value)}
+                                placeholder="Description"
+                                className="input-field w-full text-sm py-1"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  type="submit"
+                                  className="btn-primary text-xs px-3 py-1"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRenamingList(null);
+                                    setRenameValue("");
+                                    setRenameDesc("");
+                                  }}
+                                  className="text-xs px-2 py-1 rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
+                                  style={{ color: "#b76e79" }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
                             </form>
                           ) : (
                             <>
@@ -691,6 +708,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                               onClick={() => {
                                 setRenamingList(list.id);
                                 setRenameValue(list.name);
+                                setRenameDesc(list.description || "");
                               }}
                               className="p-1 rounded-lg hover:bg-blush/50 transition-colors duration-150"
                               style={{ color: "#b76e79" }}
@@ -788,6 +806,17 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                             </button>
                           </form>
                         </div>
+                      )}
+
+                      {/* Created Date */}
+                      {list.created_at && (
+                        <p className="text-xs text-rose-gold/40 mb-2">
+                          Created{" "}
+                          {new Date(list.created_at).toLocaleDateString(
+                            "en-US",
+                            { year: "numeric", month: "long", day: "numeric" },
+                          )}
+                        </p>
                       )}
 
                       {/* Stats */}

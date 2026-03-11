@@ -18,6 +18,7 @@ export default function ChecklistDashboard() {
   const [editTitle, setEditTitle] = useState("");
   const [renamingList, setRenamingList] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [renameDesc, setRenameDesc] = useState("");
   const [deletingList, setDeletingList] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
 
@@ -116,22 +117,26 @@ export default function ChecklistDashboard() {
     }
     const original = checklists;
     const newName = renameValue.trim();
+    const newDesc = renameDesc.trim();
     setChecklists(
-      checklists.map((l) => (l.id === id ? { ...l, name: newName } : l)),
+      checklists.map((l) =>
+        l.id === id ? { ...l, name: newName, description: newDesc } : l,
+      ),
     );
     setRenamingList(null);
     setRenameValue("");
-    toast.success("Renamed!");
+    setRenameDesc("");
+    toast.success("Updated!");
     try {
       const res = await fetch(`/api/checklists/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName }),
+        body: JSON.stringify({ name: newName, description: newDesc }),
       });
-      if (!res.ok) throw new Error("Failed to rename");
+      if (!res.ok) throw new Error("Failed to update");
     } catch {
       setChecklists(original);
-      toast.error("Failed to rename checklist");
+      toast.error("Failed to update checklist");
     }
   };
 
@@ -353,32 +358,43 @@ export default function ChecklistDashboard() {
                             e.preventDefault();
                             handleRenameChecklist(list.id);
                           }}
-                          className="flex gap-2"
+                          className="space-y-2"
                         >
                           <input
                             type="text"
                             value={renameValue}
                             onChange={(e) => setRenameValue(e.target.value)}
-                            className="input-field flex-1 text-sm py-1"
+                            placeholder="Name"
+                            className="input-field w-full text-sm py-1"
                             autoFocus
                           />
-                          <button
-                            type="submit"
-                            className="btn-primary text-xs px-3 py-1"
-                          >
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setRenamingList(null);
-                              setRenameValue("");
-                            }}
-                            className="text-xs px-2 py-1 rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
-                            style={{ color: "#b76e79" }}
-                          >
-                            Cancel
-                          </button>
+                          <input
+                            type="text"
+                            value={renameDesc}
+                            onChange={(e) => setRenameDesc(e.target.value)}
+                            placeholder="Description (optional)"
+                            className="input-field w-full text-sm py-1"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              type="submit"
+                              className="btn-primary text-xs px-3 py-1"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRenamingList(null);
+                                setRenameValue("");
+                                setRenameDesc("");
+                              }}
+                              className="text-xs px-2 py-1 rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
+                              style={{ color: "#b76e79" }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
                         </form>
                       ) : (
                         <>
@@ -399,10 +415,11 @@ export default function ChecklistDashboard() {
                           onClick={() => {
                             setRenamingList(list.id);
                             setRenameValue(list.name);
+                            setRenameDesc(list.description || "");
                           }}
                           className="p-1 rounded-lg hover:bg-blush/50 transition-colors duration-150"
                           style={{ color: "#b76e79" }}
-                          title="Rename"
+                          title="Edit"
                         >
                           <svg
                             className="w-4 h-4"
@@ -444,6 +461,18 @@ export default function ChecklistDashboard() {
                       </div>
                     )}
                   </div>
+
+                  {/* Created Date */}
+                  {list.created_at && (
+                    <p className="text-xs text-rose-gold/40 mb-2">
+                      Created{" "}
+                      {new Date(list.created_at).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </p>
+                  )}
 
                   {/* Delete Confirmation */}
                   {deletingList === list.id && (

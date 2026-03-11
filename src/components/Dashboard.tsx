@@ -29,14 +29,14 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   const [editTitle, setEditTitle] = useState("");
   const [uploadingItemId, setUploadingItemId] = useState<string | null>(null);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
-  const [viewingGallery, setViewingGallery] = useState<BucketList | null>(null);
+  const [viewingGalleryItem, setViewingGalleryItem] = useState<BucketItem | null>(null);
   const [renamingList, setRenamingList] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [deletingList, setDeletingList] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [completingItem, setCompletingItem] = useState<BucketItem | null>(null);
   const [completeDesc, setCompleteDesc] = useState("");
-  const [completePhoto, setCompletePhoto] = useState<string | null>(null);
+  const [completePhotos, setCompletePhotos] = useState<string[]>([]);
   const [completeDate, setCompleteDate] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const completeFileRef = useRef<HTMLInputElement>(null);
@@ -159,7 +159,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       // Open completion modal
       setCompletingItem(item);
       setCompleteDesc("");
-      setCompletePhoto(null);
+      setCompletePhotos([]);
       setCompleteDate(new Date().toISOString().split("T")[0]);
     }
   };
@@ -172,8 +172,8 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         description: completeDesc.trim() || completingItem.description,
         completed_at: completeDate ? new Date(completeDate).toISOString() : new Date().toISOString(),
       };
-      if (completePhoto) {
-        updateData.photo_url = completePhoto;
+      if (completePhotos.length > 0) {
+        updateData.photo_url = JSON.stringify(completePhotos);
       }
       const res = await fetch(`/api/buckets/${completingItem.id}`, {
         method: "PUT",
@@ -184,7 +184,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       toast.success("Marked as done!");
       setCompletingItem(null);
       setCompleteDesc("");
-      setCompletePhoto(null);
+      setCompletePhotos([]);
       fetchItems();
     } catch {
       toast.error("Failed to complete");
@@ -241,10 +241,13 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       const reader = new FileReader();
       reader.onload = async () => {
         const base64 = reader.result as string;
+        const item = items.find((i) => i.id === itemId);
+        const existing = item ? getMediaUrls(item.photo_url) : [];
+        const allPhotos = [...existing, base64];
         const res = await fetch(`/api/buckets/${itemId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ photo_url: base64 }),
+          body: JSON.stringify({ photo_url: JSON.stringify(allPhotos) }),
         });
         if (!res.ok) throw new Error("Failed to upload");
         toast.success("Photo uploaded!");
@@ -273,6 +276,15 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
   const getItemsByCategory = (category: string) =>
     items.filter((item) => item.category === category);
+
+  const getMediaUrls = (photoUrl: string | null): string[] => {
+    if (!photoUrl) return [];
+    try {
+      const parsed = JSON.parse(photoUrl);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+    return [photoUrl];
+  };
 
   return (
     <div className="min-h-screen relative">
@@ -919,37 +931,32 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
                             {/* Actions */}
                             <div className="flex items-center gap-1 flex-shrink-0">
-                            {/* View photo/video */}
-                            {item.photo_url && (
-                              <button
-                                onClick={() => {
-                                  if (viewingCompleted) setViewingGallery(viewingCompleted);
-                                }}
-                                className="p-1.5 rounded-lg hover:bg-blush/50 transition-all duration-300"
-                                style={{ color: "#b76e79" }}
-                                title="View gallery"
+                            {/* View gallery */}
+                            <button
+                              onClick={() => setViewingGalleryItem(item)}
+                              className="p-1.5 rounded-lg hover:bg-blush/50 transition-all duration-300"
+                              style={{ color: "#b76e79" }}
+                              title="View details"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={1.5}
+                                stroke="currentColor"
                               >
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  strokeWidth={1.5}
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-                                  />
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                  />
-                                </svg>
-                              </button>
-                            )}
-
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                              </svg>
+                            </button>
                             {/* Upload photo */}
                             <button
                               onClick={() => {
@@ -958,7 +965,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                               }}
                               className="p-1.5 rounded-lg hover:bg-blush/50 transition-all duration-300"
                               style={{ color: "#b76e79" }}
-                              title={item.photo_url ? "Change photo" : "Upload photo"}
+                              title={getMediaUrls(item.photo_url).length > 0 ? "Change photo" : "Upload photo"}
                             >
                               <svg
                                 className="w-4 h-4"
@@ -1007,192 +1014,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                     ))}
                 </ul>
               )}
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Media Gallery Modal */}
-      {viewingGallery && (
-        <div className="fixed inset-0 z-[55] flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-            onClick={() => setViewingGallery(null)}
-          />
-
-          {/* Modal */}
-          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in">
-            {/* Modal Header */}
-            <div
-              className="px-8 py-6 flex items-center justify-between border-b"
-              style={{ backgroundColor: "#b76e79" }}
-            >
-              <div>
-                <h2 className="text-2xl font-bold text-white">
-                  {viewingGallery.name} — Gallery
-                </h2>
-                <p className="text-base text-white/70 mt-1">
-                  {getItemsByCategory(viewingGallery.name).filter(i => i.status === "Completed" && i.photo_url).length} memories
-                </p>
-              </div>
-              <button
-                onClick={() => setViewingGallery(null)}
-                className="text-white/70 hover:text-white transition-colors"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            {/* Gallery Content */}
-            <div className="flex-1 overflow-y-auto px-8 py-6">
-              {getItemsByCategory(viewingGallery.name).filter(i => i.status === "Completed" && i.photo_url).length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-base text-rose-gold/40 italic">
-                    No photos or videos yet. Upload from the completed list!
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-8">
-                  {/* Images Section */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="h-px flex-1" style={{ backgroundColor: "rgba(183,110,121,0.2)" }} />
-                      <span className="text-base font-semibold px-3" style={{ color: "#b76e79" }}>
-                        Images ({getItemsByCategory(viewingGallery.name).filter(i => i.status === "Completed" && i.photo_url && !i.photo_url.startsWith("data:video/")).length})
-                      </span>
-                      <div className="h-px flex-1" style={{ backgroundColor: "rgba(183,110,121,0.2)" }} />
-                    </div>
-                    {getItemsByCategory(viewingGallery.name)
-                      .filter((i) => i.status === "Completed" && i.photo_url && !i.photo_url.startsWith("data:video/"))
-                      .length > 0 ? (
-                      <div className="grid grid-cols-2 gap-4">
-                        {getItemsByCategory(viewingGallery.name)
-                          .filter((i) => i.status === "Completed" && i.photo_url && !i.photo_url.startsWith("data:video/"))
-                          .map((item) => (
-                            <div
-                              key={item.id}
-                              className="rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-all duration-300"
-                              style={{ border: "1px solid rgba(232,160,160,0.2)" }}
-                              onClick={() => setViewingImage(item.photo_url)}
-                            >
-                              <img
-                                src={item.photo_url!}
-                                alt={item.title}
-                                className="w-full h-44 object-cover"
-                              />
-                              <div className="px-3 py-2.5" style={{ backgroundColor: "rgba(183,110,121,0.08)" }}>
-                                <p className="text-sm truncate" style={{ color: "#b76e79" }}>
-                                  {item.title}
-                                </p>
-                                {item.description && (
-                                  <p className="text-xs mt-1 line-clamp-2" style={{ color: "rgba(114,47,55,0.6)" }}>
-                                    {item.description}
-                                  </p>
-                                )}
-                                {item.completed_at && (
-                                  <p className="text-xs mt-0.5" style={{ color: "rgba(183,110,121,0.5)" }}>
-                                    {new Date(item.completed_at).toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    })}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-6 rounded-xl" style={{ border: "1px dashed rgba(183,110,121,0.2)" }}>
-                        <p className="text-sm italic" style={{ color: "rgba(183,110,121,0.4)" }}>
-                          No images yet
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Videos Section */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="h-px flex-1" style={{ backgroundColor: "rgba(183,110,121,0.2)" }} />
-                      <span className="text-base font-semibold px-3" style={{ color: "#b76e79" }}>
-                        Videos ({getItemsByCategory(viewingGallery.name).filter(i => i.status === "Completed" && i.photo_url?.startsWith("data:video/")).length})
-                      </span>
-                      <div className="h-px flex-1" style={{ backgroundColor: "rgba(183,110,121,0.2)" }} />
-                    </div>
-                    {getItemsByCategory(viewingGallery.name)
-                      .filter((i) => i.status === "Completed" && i.photo_url?.startsWith("data:video/"))
-                      .length > 0 ? (
-                      <div className="grid grid-cols-2 gap-4">
-                        {getItemsByCategory(viewingGallery.name)
-                          .filter((i) => i.status === "Completed" && i.photo_url?.startsWith("data:video/"))
-                          .map((item) => (
-                            <div
-                              key={item.id}
-                              className="rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-all duration-300"
-                              style={{ border: "1px solid rgba(232,160,160,0.2)" }}
-                              onClick={() => setViewingImage(item.photo_url)}
-                            >
-                              <div className="relative">
-                                <video
-                                  src={item.photo_url!}
-                                  className="w-full h-44 object-cover"
-                                />
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                                  <svg
-                                    className="w-10 h-10 text-white"
-                                    fill="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path d="M8 5v14l11-7z" />
-                                  </svg>
-                                </div>
-                              </div>
-                              <div className="px-3 py-2.5" style={{ backgroundColor: "rgba(183,110,121,0.08)" }}>
-                                <p className="text-sm truncate" style={{ color: "#b76e79" }}>
-                                  {item.title}
-                                </p>
-                                {item.description && (
-                                  <p className="text-xs mt-1 line-clamp-2" style={{ color: "rgba(114,47,55,0.6)" }}>
-                                    {item.description}
-                                  </p>
-                                )}
-                                {item.completed_at && (
-                                  <p className="text-xs mt-0.5" style={{ color: "rgba(183,110,121,0.5)" }}>
-                                    {new Date(item.completed_at).toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    })}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-6 rounded-xl" style={{ border: "1px dashed rgba(183,110,121,0.2)" }}>
-                        <p className="text-sm italic" style={{ color: "rgba(183,110,121,0.4)" }}>
-                          No videos yet
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -1207,7 +1029,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
             onClick={() => {
               setCompletingItem(null);
               setCompleteDesc("");
-              setCompletePhoto(null);
+              setCompletePhotos([]);
             }}
           />
 
@@ -1264,56 +1086,67 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                 />
               </div>
 
-              {/* Photo Upload (Optional) */}
+              {/* Photos / Videos Upload */}
               <div>
                 <label className="block text-xs font-semibold mb-1.5" style={{ color: "#b76e79" }}>
-                  Photo (optional)
+                  Photos / Videos (optional)
                 </label>
-                {completePhoto ? (
-                  <div className="relative">
-                    <img
-                      src={completePhoto}
-                      alt="Preview"
-                      className="w-full h-36 object-cover rounded-xl"
-                      style={{ border: "1px solid rgba(183,110,121,0.2)" }}
-                    />
-                    <button
-                      onClick={() => setCompletePhoto(null)}
-                      className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 text-xs"
-                    >
-                      ✕
-                    </button>
+                {completePhotos.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mb-2">
+                    {completePhotos.map((photo, idx) => (
+                      <div key={idx} className="relative group">
+                        {photo.startsWith("data:video/") ? (
+                          <video
+                            src={photo}
+                            className="w-full h-24 object-cover rounded-lg"
+                            style={{ border: "1px solid rgba(183,110,121,0.2)" }}
+                          />
+                        ) : (
+                          <img
+                            src={photo}
+                            alt={`Upload ${idx + 1}`}
+                            className="w-full h-24 object-cover rounded-lg"
+                            style={{ border: "1px solid rgba(183,110,121,0.2)" }}
+                          />
+                        )}
+                        <button
+                          onClick={() => setCompletePhotos((prev) => prev.filter((_, i) => i !== idx))}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <button
-                    onClick={() => completeFileRef.current?.click()}
-                    className="w-full py-4 rounded-xl text-sm flex flex-col items-center gap-1 transition-all duration-300 hover:bg-blush/30"
-                    style={{
-                      border: "1px dashed rgba(183,110,121,0.3)",
-                      color: "rgba(183,110,121,0.6)",
-                    }}
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"
-                      />
-                    </svg>
-                    Upload a photo
-                  </button>
                 )}
+                <button
+                  onClick={() => completeFileRef.current?.click()}
+                  className="w-full py-4 rounded-xl text-sm flex flex-col items-center gap-1 transition-all duration-300 hover:bg-blush/30"
+                  style={{
+                    border: "1px dashed rgba(183,110,121,0.3)",
+                    color: "rgba(183,110,121,0.6)",
+                  }}
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"
+                    />
+                  </svg>
+                  {completePhotos.length > 0 ? "Add more photos or videos" : "Upload a photo or video"}
+                </button>
               </div>
             </div>
 
@@ -1323,7 +1156,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                 onClick={() => {
                   setCompletingItem(null);
                   setCompleteDesc("");
-                  setCompletePhoto(null);
+                  setCompletePhotos([]);
                 }}
                 className="px-4 py-2 text-sm rounded-pill border border-rose/20 hover:bg-blush transition-all duration-300"
                 style={{ color: "#b76e79" }}
@@ -1337,6 +1170,157 @@ export default function Dashboard({ onLogout }: DashboardProps) {
               >
                 Mark as Done
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Per-Item Gallery Modal */}
+      {viewingGalleryItem && (
+        <div className="fixed inset-0 z-[55] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={() => setViewingGalleryItem(null)}
+          />
+
+          {/* Modal */}
+          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden animate-fade-in">
+            {/* Modal Header */}
+            <div
+              className="px-6 py-5 flex items-center justify-between border-b"
+              style={{ backgroundColor: "#b76e79" }}
+            >
+              <div>
+                <h2 className="text-xl font-bold text-white">
+                  {viewingGalleryItem.title}
+                </h2>
+                {viewingGalleryItem.completed_at && (
+                  <p className="text-sm text-white/70 mt-0.5">
+                    Completed on{" "}
+                    {new Date(viewingGalleryItem.completed_at).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => setViewingGalleryItem(null)}
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+              {/* Description */}
+              {viewingGalleryItem.description && (
+                <div>
+                  <p className="text-xs font-semibold mb-1.5" style={{ color: "#b76e79" }}>
+                    Notes
+                  </p>
+                  <p className="text-sm leading-relaxed" style={{ color: "#722f37" }}>
+                    {viewingGalleryItem.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Media Gallery */}
+              {(() => {
+                const mediaUrls = getMediaUrls(viewingGalleryItem.photo_url);
+                const images = mediaUrls.filter((url) => !url.startsWith("data:video/"));
+                const videos = mediaUrls.filter((url) => url.startsWith("data:video/"));
+
+                if (mediaUrls.length === 0) return null;
+
+                return (
+                  <div className="space-y-4">
+                    {/* Images */}
+                    {images.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold mb-2" style={{ color: "#b76e79" }}>
+                          Images ({images.length})
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {images.map((url, idx) => (
+                            <div
+                              key={idx}
+                              className="rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-all duration-300"
+                              style={{ border: "1px solid rgba(232,160,160,0.2)" }}
+                              onClick={() => setViewingImage(url)}
+                            >
+                              <img
+                                src={url}
+                                alt={`${viewingGalleryItem.title} ${idx + 1}`}
+                                className="w-full h-36 object-cover"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Videos */}
+                    {videos.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold mb-2" style={{ color: "#b76e79" }}>
+                          Videos ({videos.length})
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {videos.map((url, idx) => (
+                            <div
+                              key={idx}
+                              className="rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-all duration-300"
+                              style={{ border: "1px solid rgba(232,160,160,0.2)" }}
+                              onClick={() => setViewingImage(url)}
+                            >
+                              <div className="relative">
+                                <video
+                                  src={url}
+                                  className="w-full h-36 object-cover"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                  <svg
+                                    className="w-8 h-8 text-white"
+                                    fill="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path d="M8 5v14l11-7z" />
+                                  </svg>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Empty state */}
+              {!viewingGalleryItem.description && getMediaUrls(viewingGalleryItem.photo_url).length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-sm italic" style={{ color: "rgba(183,110,121,0.4)" }}>
+                    No details or media for this goal yet.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1362,7 +1346,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       <input
         ref={completeFileRef}
         type="file"
-        accept="image/*"
+        accept="image/*,video/*"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -1373,7 +1357,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
             }
             const reader = new FileReader();
             reader.onload = () => {
-              setCompletePhoto(reader.result as string);
+              setCompletePhotos((prev) => [...prev, reader.result as string]);
             };
             reader.readAsDataURL(file);
           }

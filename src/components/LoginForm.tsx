@@ -66,6 +66,20 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                     setSelectedDate(date);
                     setError("");
                   }}
+                  onMonthChange={(date: Date) => {
+                    if (selectedDate) {
+                      const updated = new Date(date);
+                      updated.setDate(Math.min(selectedDate.getDate(), new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()));
+                      setSelectedDate(updated);
+                    }
+                  }}
+                  onYearChange={(date: Date) => {
+                    if (selectedDate) {
+                      const updated = new Date(date);
+                      updated.setDate(Math.min(selectedDate.getDate(), new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()));
+                      setSelectedDate(updated);
+                    }
+                  }}
                   inline
                   dateFormat="MMMM d, yyyy"
                   showMonthDropdown

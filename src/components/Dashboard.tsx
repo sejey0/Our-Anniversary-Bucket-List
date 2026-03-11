@@ -1034,7 +1034,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
           />
 
           {/* Modal */}
-          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in">
+          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-xl overflow-hidden animate-fade-in">
             {/* Modal Header */}
             <div
               className="px-6 py-4 border-b"
@@ -1331,11 +1331,51 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         ref={fileInputRef}
         type="file"
         accept="image/*,video/*"
+        multiple
         className="hidden"
         onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file && uploadingItemId) {
-            handleUploadPhoto(uploadingItemId, file);
+          const files = e.target.files;
+          if (files && files.length > 0 && uploadingItemId) {
+            const itemId = uploadingItemId;
+            const fileArray = Array.from(files);
+            let processed = 0;
+            const newBase64s: string[] = [];
+
+            fileArray.forEach((file) => {
+              if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+                toast.error(`${file.name} is not an image or video`);
+                processed++;
+                return;
+              }
+              if (file.size > 10 * 1024 * 1024) {
+                toast.error(`${file.name} is over 10MB`);
+                processed++;
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = async () => {
+                newBase64s.push(reader.result as string);
+                processed++;
+                if (processed === fileArray.length && newBase64s.length > 0) {
+                  const item = items.find((i) => i.id === itemId);
+                  const existing = item ? getMediaUrls(item.photo_url) : [];
+                  const allPhotos = [...existing, ...newBase64s];
+                  try {
+                    const res = await fetch(`/api/buckets/${itemId}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ photo_url: JSON.stringify(allPhotos) }),
+                    });
+                    if (!res.ok) throw new Error("Failed to upload");
+                    toast.success(`${newBase64s.length} file${newBase64s.length > 1 ? "s" : ""} uploaded!`);
+                    fetchItems();
+                  } catch {
+                    toast.error("Failed to upload photos");
+                  }
+                }
+              };
+              reader.readAsDataURL(file);
+            });
           }
           e.target.value = "";
           setUploadingItemId(null);
@@ -1347,19 +1387,22 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         ref={completeFileRef}
         type="file"
         accept="image/*,video/*"
+        multiple
         className="hidden"
         onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            if (file.size > 10 * 1024 * 1024) {
-              toast.error("File must be under 10MB");
-              return;
-            }
-            const reader = new FileReader();
-            reader.onload = () => {
-              setCompletePhotos((prev) => [...prev, reader.result as string]);
-            };
-            reader.readAsDataURL(file);
+          const files = e.target.files;
+          if (files) {
+            Array.from(files).forEach((file) => {
+              if (file.size > 10 * 1024 * 1024) {
+                toast.error(`${file.name} is over 10MB`);
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = () => {
+                setCompletePhotos((prev) => [...prev, reader.result as string]);
+              };
+              reader.readAsDataURL(file);
+            });
           }
           e.target.value = "";
         }}

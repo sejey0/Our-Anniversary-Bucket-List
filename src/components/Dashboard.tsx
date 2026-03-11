@@ -38,9 +38,17 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     useState<BucketItem | null>(null);
   const [renamingList, setRenamingList] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [renameDesc, setRenameDesc] = useState("");
+  const [editingListDesc, setEditingListDesc] = useState<string | null>(null);
+  const [editListDescValue, setEditListDescValue] = useState("");
   const [deletingList, setDeletingList] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [editNotesValue, setEditNotesValue] = useState("");
+  const [editingGalleryTitle, setEditingGalleryTitle] = useState(false);
+  const [editGalleryTitleValue, setEditGalleryTitleValue] = useState("");
+  const [deletingImageIdx, setDeletingImageIdx] = useState<number | null>(null);
+  const [deleteImageConfirm, setDeleteImageConfirm] = useState("");
+  const [editCounts, setEditCounts] = useState<Record<string, number>>({});
   const [completingItem, setCompletingItem] = useState<BucketItem | null>(null);
   const [completeDesc, setCompleteDesc] = useState("");
   const [completePhotos, setCompletePhotos] = useState<string[]>([]);
@@ -197,6 +205,16 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     }
   };
 
+  const getEditCount = (id: string, field: string) =>
+    editCounts[`${id}-${field}`] || 0;
+  const canEdit = (id: string, field: string) => getEditCount(id, field) < 3;
+  const incrementEditCount = (id: string, field: string) => {
+    setEditCounts((prev) => ({
+      ...prev,
+      [`${id}-${field}`]: (prev[`${id}-${field}`] || 0) + 1,
+    }));
+  };
+
   const handleRenameList = async (id: string) => {
     if (!renameValue.trim()) {
       toast.error("Name cannot be empty");
@@ -205,24 +223,20 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     const original = bucketLists;
     const oldName = bucketLists.find((l) => l.id === id)?.name;
     const newName = renameValue.trim();
-    const newDesc = renameDesc.trim();
     setBucketLists(
-      bucketLists.map((l) =>
-        l.id === id ? { ...l, name: newName, description: newDesc } : l,
-      ),
+      bucketLists.map((l) => (l.id === id ? { ...l, name: newName } : l)),
     );
     setRenamingList(null);
     setRenameValue("");
-    setRenameDesc("");
-    toast.success("Updated!");
+    incrementEditCount(id, "name");
+    toast.success("Name updated!");
     try {
       const res = await fetch(`/api/lists/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName, description: newDesc }),
+        body: JSON.stringify({ name: newName }),
       });
       if (!res.ok) throw new Error("Failed to rename");
-      // Update items' category to match new name
       if (oldName) {
         const itemsToUpdate = items.filter((i) => i.category === oldName);
         for (const item of itemsToUpdate) {
@@ -240,7 +254,32 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       }
     } catch {
       setBucketLists(original);
-      toast.error("Failed to rename bucket list");
+      toast.error("Failed to update name");
+    }
+  };
+
+  const handleEditListDesc = async (id: string) => {
+    const original = bucketLists;
+    const newDesc = editListDescValue.trim();
+    setBucketLists(
+      bucketLists.map((l) =>
+        l.id === id ? { ...l, description: newDesc } : l,
+      ),
+    );
+    setEditingListDesc(null);
+    setEditListDescValue("");
+    incrementEditCount(id, "description");
+    toast.success("Description updated!");
+    try {
+      const res = await fetch(`/api/lists/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: newDesc }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+    } catch {
+      setBucketLists(original);
+      toast.error("Failed to update description");
     }
   };
 
@@ -393,6 +432,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     toast.success("Updated!");
     setEditingItem(null);
     setEditTitle("");
+    incrementEditCount(id, "title");
     try {
       const res = await fetch(`/api/buckets/${id}`, {
         method: "PUT",
@@ -447,6 +487,106 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleUpdateNotes = async (itemId: string, newDescription: string) => {
+    const original = items.find((i) => i.id === itemId);
+    const desc = newDescription.trim();
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === itemId ? { ...i, description: desc || null } : i,
+      ),
+    );
+    if (viewingGalleryItem && viewingGalleryItem.id === itemId) {
+      setViewingGalleryItem({
+        ...viewingGalleryItem,
+        description: desc || null,
+      });
+    }
+    setEditingNotes(false);
+    setEditNotesValue("");
+    incrementEditCount(itemId, "notes");
+    toast.success("Notes updated!");
+    try {
+      const res = await fetch(`/api/buckets/${itemId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: desc || null }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+    } catch {
+      if (original)
+        setItems((prev) => prev.map((i) => (i.id === itemId ? original : i)));
+      toast.error("Failed to update notes");
+    }
+  };
+
+  const handleUpdateGalleryTitle = async (itemId: string, newTitle: string) => {
+    if (!newTitle.trim()) {
+      toast.error("Name cannot be empty");
+      return;
+    }
+    const original = items.find((i) => i.id === itemId);
+    const title = newTitle.trim();
+    setItems((prev) =>
+      prev.map((i) => (i.id === itemId ? { ...i, title } : i)),
+    );
+    if (viewingGalleryItem && viewingGalleryItem.id === itemId) {
+      setViewingGalleryItem({ ...viewingGalleryItem, title });
+    }
+    setEditingGalleryTitle(false);
+    setEditGalleryTitleValue("");
+    incrementEditCount(itemId, "galleryTitle");
+    toast.success("Name updated!");
+    try {
+      const res = await fetch(`/api/buckets/${itemId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+    } catch {
+      if (original)
+        setItems((prev) => prev.map((i) => (i.id === itemId ? original : i)));
+      toast.error("Failed to update name");
+    }
+  };
+
+  const handleDeleteSingleImage = async (itemId: string, imageIdx: number) => {
+    if (deleteImageConfirm.toLowerCase() !== "i love you") {
+      toast.error("Type 'i love you' to confirm deletion");
+      return;
+    }
+    const item = items.find((i) => i.id === itemId);
+    if (!item) return;
+    const mediaUrls = getMediaUrls(item.photo_url);
+    const newUrls = mediaUrls.filter((_, idx) => idx !== imageIdx);
+    const newPhotoUrl = newUrls.length > 0 ? JSON.stringify(newUrls) : null;
+    const originalPhotoUrl = item.photo_url;
+    setItems((prev) =>
+      prev.map((i) => (i.id === itemId ? { ...i, photo_url: newPhotoUrl } : i)),
+    );
+    if (viewingGalleryItem && viewingGalleryItem.id === itemId) {
+      setViewingGalleryItem({ ...viewingGalleryItem, photo_url: newPhotoUrl });
+    }
+    setDeletingImageIdx(null);
+    setDeleteImageConfirm("");
+    toast.success("Image deleted!");
+    try {
+      const res = await fetch(`/api/buckets/${itemId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photo_url: newPhotoUrl }),
+      });
+      if (!res.ok) throw new Error("Failed to delete image");
+    } catch {
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === itemId ? { ...i, photo_url: originalPhotoUrl } : i,
+        ),
+      );
+      toast.error("Failed to delete image");
+    }
   };
 
   const handleRemovePhoto = async (itemId: string) => {
@@ -644,116 +784,181 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                       {/* Card Header */}
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1 min-w-0">
+                          {/* Editable Name */}
                           {renamingList === list.id ? (
                             <form
                               onSubmit={(e) => {
                                 e.preventDefault();
                                 handleRenameList(list.id);
                               }}
-                              className="space-y-2"
+                              className="flex gap-2 mb-1"
                             >
                               <input
                                 type="text"
                                 value={renameValue}
                                 onChange={(e) => setRenameValue(e.target.value)}
                                 placeholder="Name"
-                                className="input-field w-full text-sm py-1"
+                                className="input-field flex-1 text-sm py-1"
                                 autoFocus
                               />
-                              <input
-                                type="text"
-                                value={renameDesc}
-                                onChange={(e) => setRenameDesc(e.target.value)}
-                                placeholder="Description"
-                                className="input-field w-full text-sm py-1"
-                              />
-                              <div className="flex gap-2">
-                                <button
-                                  type="submit"
-                                  className="btn-primary text-xs px-3 py-1"
-                                >
-                                  Save
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setRenamingList(null);
-                                    setRenameValue("");
-                                    setRenameDesc("");
-                                  }}
-                                  className="text-xs px-2 py-1 rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
-                                  style={{ color: "#b76e79" }}
-                                >
-                                  Cancel
-                                </button>
-                              </div>
+                              <button
+                                type="submit"
+                                className="btn-primary text-xs px-3 py-1"
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setRenamingList(null);
+                                  setRenameValue("");
+                                }}
+                                className="text-xs px-2 py-1 rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
+                                style={{ color: "#b76e79" }}
+                              >
+                                Cancel
+                              </button>
                             </form>
                           ) : (
-                            <>
-                              <h2 className="text-base font-bold text-gradient">
+                            <div className="flex items-center gap-1.5">
+                              <h2 className="text-base font-bold text-gradient truncate">
                                 {list.name}
                               </h2>
-                              {list.description && (
-                                <p className="text-xs text-rose-gold/50 mt-0.5">
+                              {canEdit(list.id, "name") && (
+                                <button
+                                  onClick={() => {
+                                    setRenamingList(list.id);
+                                    setRenameValue(list.name);
+                                  }}
+                                  className="p-0.5 rounded-lg hover:bg-blush/50 transition-colors duration-150 flex-shrink-0"
+                                  style={{ color: "#b76e79" }}
+                                  title={`Edit name (${3 - getEditCount(list.id, "name")} left)`}
+                                >
+                                  <svg
+                                    className="w-3.5 h-3.5"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={1.5}
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"
+                                    />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Editable Description */}
+                          {editingListDesc === list.id ? (
+                            <form
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                handleEditListDesc(list.id);
+                              }}
+                              className="flex gap-2 mt-1"
+                            >
+                              <input
+                                type="text"
+                                value={editListDescValue}
+                                onChange={(e) =>
+                                  setEditListDescValue(e.target.value)
+                                }
+                                placeholder="Description"
+                                className="input-field flex-1 text-xs py-1"
+                                autoFocus
+                              />
+                              <button
+                                type="submit"
+                                className="btn-primary text-xs px-3 py-1"
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingListDesc(null);
+                                  setEditListDescValue("");
+                                }}
+                                className="text-xs px-2 py-1 rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
+                                style={{ color: "#b76e79" }}
+                              >
+                                Cancel
+                              </button>
+                            </form>
+                          ) : (
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              {list.description ? (
+                                <p className="text-xs text-rose-gold/50 truncate">
                                   {list.description}
                                 </p>
+                              ) : (
+                                <p className="text-xs text-rose-gold/30 italic">
+                                  No description
+                                </p>
                               )}
-                            </>
+                              {canEdit(list.id, "description") && (
+                                <button
+                                  onClick={() => {
+                                    setEditingListDesc(list.id);
+                                    setEditListDescValue(
+                                      list.description || "",
+                                    );
+                                  }}
+                                  className="p-0.5 rounded-lg hover:bg-blush/50 transition-colors duration-150 flex-shrink-0"
+                                  style={{ color: "#b76e79" }}
+                                  title={`Edit description (${3 - getEditCount(list.id, "description")} left)`}
+                                >
+                                  <svg
+                                    className="w-3 h-3"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={1.5}
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"
+                                    />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
-                        {renamingList !== list.id && (
-                          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                            {/* Rename */}
-                            <button
-                              onClick={() => {
-                                setRenamingList(list.id);
-                                setRenameValue(list.name);
-                                setRenameDesc(list.description || "");
-                              }}
-                              className="p-1 rounded-lg hover:bg-blush/50 transition-colors duration-150"
-                              style={{ color: "#b76e79" }}
-                              title="Rename"
-                            >
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                strokeWidth={1.5}
-                                stroke="currentColor"
+                        {renamingList !== list.id &&
+                          editingListDesc !== list.id && (
+                            <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                              {/* Delete */}
+                              <button
+                                onClick={() => {
+                                  setDeletingList(list.id);
+                                  setDeleteConfirm("");
+                                }}
+                                className="p-1 rounded-lg hover:bg-red-50 transition-colors duration-150"
+                                style={{ color: "#722f37" }}
+                                title="Delete"
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"
-                                />
-                              </svg>
-                            </button>
-                            {/* Delete */}
-                            <button
-                              onClick={() => {
-                                setDeletingList(list.id);
-                                setDeleteConfirm("");
-                              }}
-                              className="p-1 rounded-lg hover:bg-red-50 transition-colors duration-150"
-                              style={{ color: "#722f37" }}
-                              title="Delete"
-                            >
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                strokeWidth={1.5}
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                                />
-                              </svg>
-                            </button>
-                          </div>
-                        )}
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  strokeWidth={1.5}
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          )}
                       </div>
 
                       {/* Delete Confirmation */}
@@ -1054,29 +1259,31 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                 {/* Actions */}
                                 {editingItem !== item.id && (
                                   <div className="flex items-center gap-1 flex-shrink-0">
-                                    <button
-                                      onClick={() => {
-                                        setEditingItem(item.id);
-                                        setEditTitle(item.title);
-                                      }}
-                                      className="p-1.5 rounded-lg hover:bg-blush/50 transition-colors duration-150"
-                                      style={{ color: "#b76e79" }}
-                                      title="Edit"
-                                    >
-                                      <svg
-                                        className="w-4 h-4"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        strokeWidth={1.5}
-                                        stroke="currentColor"
+                                    {canEdit(item.id, "title") && (
+                                      <button
+                                        onClick={() => {
+                                          setEditingItem(item.id);
+                                          setEditTitle(item.title);
+                                        }}
+                                        className="p-1.5 rounded-lg hover:bg-blush/50 transition-colors duration-150"
+                                        style={{ color: "#b76e79" }}
+                                        title={`Edit (${3 - getEditCount(item.id, "title")} left)`}
                                       >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"
-                                        />
-                                      </svg>
-                                    </button>
+                                        <svg
+                                          className="w-4 h-4"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          strokeWidth={1.5}
+                                          stroke="currentColor"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"
+                                          />
+                                        </svg>
+                                      </button>
+                                    )}
                                     <button
                                       onClick={() => handleDeleteItem(item.id)}
                                       className="p-1.5 rounded-lg hover:bg-red-50 transition-colors duration-150"
@@ -1507,7 +1714,15 @@ export default function Dashboard({ onLogout }: DashboardProps) {
               {/* Backdrop */}
               <div
                 className="absolute inset-0 bg-black/40"
-                onClick={() => setViewingGalleryItem(null)}
+                onClick={() => {
+                  setViewingGalleryItem(null);
+                  setEditingNotes(false);
+                  setEditNotesValue("");
+                  setEditingGalleryTitle(false);
+                  setEditGalleryTitleValue("");
+                  setDeletingImageIdx(null);
+                  setDeleteImageConfirm("");
+                }}
               />
 
               {/* Modal */}
@@ -1517,26 +1732,113 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                   className="px-6 py-5 flex items-center justify-between border-b"
                   style={{ backgroundColor: "#b76e79" }}
                 >
-                  <div>
-                    <h2 className="text-xl font-bold text-white">
-                      {viewingGalleryItem.title}
-                    </h2>
-                    {viewingGalleryItem.completed_at && (
-                      <p className="text-sm text-white/70 mt-0.5">
-                        Completed on{" "}
-                        {new Date(
-                          viewingGalleryItem.completed_at,
-                        ).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </p>
+                  <div className="flex-1 min-w-0 mr-3">
+                    {editingGalleryTitle ? (
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleUpdateGalleryTitle(
+                            viewingGalleryItem.id,
+                            editGalleryTitleValue,
+                          );
+                        }}
+                        className="space-y-1.5"
+                      >
+                        <input
+                          type="text"
+                          value={editGalleryTitleValue}
+                          onChange={(e) =>
+                            setEditGalleryTitleValue(e.target.value)
+                          }
+                          className="w-full text-base font-bold rounded-lg px-2 py-1 text-wine"
+                          style={{ backgroundColor: "rgba(255,255,255,0.9)" }}
+                          autoFocus
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="submit"
+                            className="text-xs px-3 py-1 rounded-pill font-semibold"
+                            style={{
+                              backgroundColor: "rgba(255,255,255,0.9)",
+                              color: "#b76e79",
+                            }}
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingGalleryTitle(false);
+                              setEditGalleryTitleValue("");
+                            }}
+                            className="text-xs px-3 py-1 rounded-pill text-white/70 hover:text-white"
+                            style={{
+                              border: "1px solid rgba(255,255,255,0.4)",
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-xl font-bold text-white truncate">
+                            {viewingGalleryItem.title}
+                          </h2>
+                          {canEdit(viewingGalleryItem.id, "galleryTitle") && (
+                            <button
+                              onClick={() => {
+                                setEditingGalleryTitle(true);
+                                setEditGalleryTitleValue(
+                                  viewingGalleryItem.title,
+                                );
+                              }}
+                              className="p-1 rounded-lg hover:bg-white/20 transition-colors duration-150 flex-shrink-0"
+                              title={`Edit name (${3 - getEditCount(viewingGalleryItem.id, "galleryTitle")} left)`}
+                            >
+                              <svg
+                                className="w-3.5 h-3.5 text-white/70"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={1.5}
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"
+                                />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                        {viewingGalleryItem.completed_at && (
+                          <p className="text-sm text-white/70 mt-0.5">
+                            Completed on{" "}
+                            {new Date(
+                              viewingGalleryItem.completed_at,
+                            ).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                   <button
-                    onClick={() => setViewingGalleryItem(null)}
-                    className="text-white/70 hover:text-white transition-colors"
+                    onClick={() => {
+                      setViewingGalleryItem(null);
+                      setEditingNotes(false);
+                      setEditNotesValue("");
+                      setEditingGalleryTitle(false);
+                      setEditGalleryTitleValue("");
+                      setDeletingImageIdx(null);
+                      setDeleteImageConfirm("");
+                    }}
+                    className="text-white/70 hover:text-white transition-colors flex-shrink-0"
                   >
                     <svg
                       className="w-5 h-5"
@@ -1556,23 +1858,101 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
                 {/* Modal Body */}
                 <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-                  {/* Description */}
-                  {viewingGalleryItem.description && (
-                    <div>
+                  {/* Description / Notes (Editable) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
                       <p
-                        className="text-xs font-semibold mb-1.5"
+                        className="text-xs font-semibold"
                         style={{ color: "#b76e79" }}
                       >
                         Notes
                       </p>
+                      {!editingNotes &&
+                        canEdit(viewingGalleryItem.id, "notes") && (
+                          <button
+                            onClick={() => {
+                              setEditingNotes(true);
+                              setEditNotesValue(
+                                viewingGalleryItem.description || "",
+                              );
+                            }}
+                            className="p-1 rounded-lg hover:bg-blush/50 transition-colors duration-150"
+                            style={{ color: "#b76e79" }}
+                            title={`Edit notes (${3 - getEditCount(viewingGalleryItem.id, "notes")} left)`}
+                          >
+                            <svg
+                              className="w-3.5 h-3.5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={1.5}
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"
+                              />
+                            </svg>
+                          </button>
+                        )}
+                    </div>
+                    {editingNotes ? (
+                      <div className="space-y-2">
+                        <textarea
+                          value={editNotesValue}
+                          onChange={(e) => setEditNotesValue(e.target.value)}
+                          className="input-field w-full text-sm py-2 min-h-[80px] resize-y"
+                          placeholder="Add notes..."
+                          autoFocus
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => {
+                              setEditingNotes(false);
+                              setEditNotesValue("");
+                            }}
+                            className="text-xs px-3 py-1.5 rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
+                            style={{ color: "#b76e79" }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleUpdateNotes(
+                                viewingGalleryItem.id,
+                                editNotesValue,
+                              )
+                            }
+                            className="btn-primary text-xs px-4 py-1.5"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    ) : viewingGalleryItem.description ? (
                       <p
                         className="text-sm leading-relaxed"
                         style={{ color: "#722f37" }}
                       >
                         {viewingGalleryItem.description}
                       </p>
-                    </div>
-                  )}
+                    ) : (
+                      <p
+                        className={`text-sm italic ${canEdit(viewingGalleryItem.id, "notes") ? "cursor-pointer hover:underline" : ""}`}
+                        style={{ color: "rgba(183,110,121,0.4)" }}
+                        onClick={() => {
+                          if (canEdit(viewingGalleryItem.id, "notes")) {
+                            setEditingNotes(true);
+                            setEditNotesValue("");
+                          }
+                        }}
+                      >
+                        {canEdit(viewingGalleryItem.id, "notes")
+                          ? "No notes yet. Click to add."
+                          : "No notes."}
+                      </p>
+                    )}
+                  </div>
 
                   {/* Media Gallery */}
                   {(() => {
@@ -1600,22 +1980,109 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                               Images ({images.length})
                             </p>
                             <div className="grid grid-cols-2 gap-3">
-                              {images.map((url, idx) => (
-                                <div
-                                  key={idx}
-                                  className="rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-colors duration-150"
-                                  style={{
-                                    border: "1px solid rgba(232,160,160,0.2)",
-                                  }}
-                                  onClick={() => setViewingImage(url)}
-                                >
-                                  <img
-                                    src={url}
-                                    alt={`${viewingGalleryItem.title} ${idx + 1}`}
-                                    className="w-full h-36 object-cover"
-                                  />
-                                </div>
-                              ))}
+                              {images.map((url, idx) => {
+                                const actualIdx = getMediaUrls(
+                                  viewingGalleryItem.photo_url,
+                                ).indexOf(url);
+                                return (
+                                  <div key={idx} className="relative group">
+                                    <div
+                                      className="rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-colors duration-150"
+                                      style={{
+                                        border:
+                                          "1px solid rgba(232,160,160,0.2)",
+                                      }}
+                                      onClick={() => setViewingImage(url)}
+                                    >
+                                      <img
+                                        src={url}
+                                        alt={`${viewingGalleryItem.title} ${idx + 1}`}
+                                        className="w-full h-36 object-cover"
+                                      />
+                                    </div>
+                                    {/* Delete Image Button */}
+                                    <button
+                                      onClick={() => {
+                                        setDeletingImageIdx(actualIdx);
+                                        setDeleteImageConfirm("");
+                                      }}
+                                      className="absolute top-1.5 right-1.5 p-1 rounded-full bg-white/80 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all duration-150"
+                                      style={{ color: "#722f37" }}
+                                      title="Delete image"
+                                    >
+                                      <svg
+                                        className="w-3.5 h-3.5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        strokeWidth={2}
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          d="M6 18L18 6M6 6l12 12"
+                                        />
+                                      </svg>
+                                    </button>
+                                    {/* Delete Confirmation */}
+                                    {deletingImageIdx === actualIdx && (
+                                      <div className="absolute inset-0 bg-white/95 rounded-xl flex flex-col items-center justify-center p-2 z-10">
+                                        <p
+                                          className="text-xs mb-1.5 text-center"
+                                          style={{ color: "#722f37" }}
+                                        >
+                                          Type <strong>i love you</strong>
+                                        </p>
+                                        <input
+                                          type="text"
+                                          value={deleteImageConfirm}
+                                          onChange={(e) =>
+                                            setDeleteImageConfirm(
+                                              e.target.value,
+                                            )
+                                          }
+                                          placeholder="i love you"
+                                          className="input-field text-xs py-1 px-2 w-full mb-1.5"
+                                          autoFocus
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter")
+                                              handleDeleteSingleImage(
+                                                viewingGalleryItem.id,
+                                                actualIdx,
+                                              );
+                                          }}
+                                        />
+                                        <div className="flex gap-1.5">
+                                          <button
+                                            onClick={() =>
+                                              handleDeleteSingleImage(
+                                                viewingGalleryItem.id,
+                                                actualIdx,
+                                              )
+                                            }
+                                            className="text-xs px-2.5 py-1 rounded-pill text-white"
+                                            style={{
+                                              backgroundColor: "#722f37",
+                                            }}
+                                          >
+                                            Delete
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              setDeletingImageIdx(null);
+                                              setDeleteImageConfirm("");
+                                            }}
+                                            className="text-xs px-2.5 py-1 rounded-pill border border-rose/20 hover:bg-blush"
+                                            style={{ color: "#b76e79" }}
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         )}
@@ -1630,32 +2097,119 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                               Videos ({videos.length})
                             </p>
                             <div className="grid grid-cols-2 gap-3">
-                              {videos.map((url, idx) => (
-                                <div
-                                  key={idx}
-                                  className="rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-colors duration-150"
-                                  style={{
-                                    border: "1px solid rgba(232,160,160,0.2)",
-                                  }}
-                                  onClick={() => setViewingImage(url)}
-                                >
-                                  <div className="relative">
-                                    <video
-                                      src={url}
-                                      className="w-full h-36 object-cover"
-                                    />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                                      <svg
-                                        className="w-8 h-8 text-white"
-                                        fill="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path d="M8 5v14l11-7z" />
-                                      </svg>
+                              {videos.map((url, idx) => {
+                                const actualIdx = getMediaUrls(
+                                  viewingGalleryItem.photo_url,
+                                ).indexOf(url);
+                                return (
+                                  <div key={idx} className="relative group">
+                                    <div
+                                      className="rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-colors duration-150"
+                                      style={{
+                                        border:
+                                          "1px solid rgba(232,160,160,0.2)",
+                                      }}
+                                      onClick={() => setViewingImage(url)}
+                                    >
+                                      <div className="relative">
+                                        <video
+                                          src={url}
+                                          className="w-full h-36 object-cover"
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                          <svg
+                                            className="w-8 h-8 text-white"
+                                            fill="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path d="M8 5v14l11-7z" />
+                                          </svg>
+                                        </div>
+                                      </div>
                                     </div>
+                                    {/* Delete Video Button */}
+                                    <button
+                                      onClick={() => {
+                                        setDeletingImageIdx(actualIdx);
+                                        setDeleteImageConfirm("");
+                                      }}
+                                      className="absolute top-1.5 right-1.5 p-1 rounded-full bg-white/80 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all duration-150"
+                                      style={{ color: "#722f37" }}
+                                      title="Delete video"
+                                    >
+                                      <svg
+                                        className="w-3.5 h-3.5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        strokeWidth={2}
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          d="M6 18L18 6M6 6l12 12"
+                                        />
+                                      </svg>
+                                    </button>
+                                    {/* Delete Confirmation */}
+                                    {deletingImageIdx === actualIdx && (
+                                      <div className="absolute inset-0 bg-white/95 rounded-xl flex flex-col items-center justify-center p-2 z-10">
+                                        <p
+                                          className="text-xs mb-1.5 text-center"
+                                          style={{ color: "#722f37" }}
+                                        >
+                                          Type <strong>i love you</strong>
+                                        </p>
+                                        <input
+                                          type="text"
+                                          value={deleteImageConfirm}
+                                          onChange={(e) =>
+                                            setDeleteImageConfirm(
+                                              e.target.value,
+                                            )
+                                          }
+                                          placeholder="i love you"
+                                          className="input-field text-xs py-1 px-2 w-full mb-1.5"
+                                          autoFocus
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter")
+                                              handleDeleteSingleImage(
+                                                viewingGalleryItem.id,
+                                                actualIdx,
+                                              );
+                                          }}
+                                        />
+                                        <div className="flex gap-1.5">
+                                          <button
+                                            onClick={() =>
+                                              handleDeleteSingleImage(
+                                                viewingGalleryItem.id,
+                                                actualIdx,
+                                              )
+                                            }
+                                            className="text-xs px-2.5 py-1 rounded-pill text-white"
+                                            style={{
+                                              backgroundColor: "#722f37",
+                                            }}
+                                          >
+                                            Delete
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              setDeletingImageIdx(null);
+                                              setDeleteImageConfirm("");
+                                            }}
+                                            className="text-xs px-2.5 py-1 rounded-pill border border-rose/20 hover:bg-blush"
+                                            style={{ color: "#b76e79" }}
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </div>
                         )}

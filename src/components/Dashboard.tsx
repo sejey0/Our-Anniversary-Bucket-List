@@ -48,6 +48,8 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   const [editGalleryTitleValue, setEditGalleryTitleValue] = useState("");
   const [deletingImageIdx, setDeletingImageIdx] = useState<number | null>(null);
   const [deleteImageConfirm, setDeleteImageConfirm] = useState("");
+  const [deletingItem, setDeletingItem] = useState<BucketItem | null>(null);
+  const [deleteItemConfirm, setDeleteItemConfirm] = useState("");
   const [editCounts, setEditCounts] = useState<Record<string, number>>({});
   const [completingItem, setCompletingItem] = useState<BucketItem | null>(null);
   const [completeDesc, setCompleteDesc] = useState("");
@@ -407,7 +409,13 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   };
 
   const handleDeleteItem = async (id: string) => {
+    if (deleteItemConfirm.toLowerCase() !== "i love you") {
+      toast.error("Type 'i love you' to confirm deletion");
+      return;
+    }
     const original = items.find((i) => i.id === id);
+    setDeletingItem(null);
+    setDeleteItemConfirm("");
     setItems((prev) => prev.filter((i) => i.id !== id));
     toast.success("Removed!");
     try {
@@ -1285,7 +1293,10 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                       </button>
                                     )}
                                     <button
-                                      onClick={() => handleDeleteItem(item.id)}
+                                      onClick={() => {
+                                        setDeletingItem(item);
+                                        setDeleteItemConfirm("");
+                                      }}
                                       className="p-1.5 rounded-lg hover:bg-red-50 transition-colors duration-150"
                                       style={{ color: "#722f37" }}
                                       title="Delete"
@@ -2341,6 +2352,69 @@ export default function Dashboard({ onLogout }: DashboardProps) {
               e.target.value = "";
             }}
           />
+
+          {/* Delete Item Confirmation Modal */}
+          {deletingItem && (
+            <div className="fixed inset-0 z-[55] flex items-center justify-center p-4">
+              <div
+                className="absolute inset-0 bg-black/40"
+                onClick={() => {
+                  setDeletingItem(null);
+                  setDeleteItemConfirm("");
+                }}
+              />
+              <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-sm p-6 text-center">
+                <h3
+                  className="text-lg font-bold mb-1"
+                  style={{ color: "#722f37" }}
+                >
+                  Delete Goal?
+                </h3>
+                <p className="text-sm mb-1" style={{ color: "#b76e79" }}>
+                  <strong>{deletingItem.title}</strong>
+                </p>
+                <p
+                  className="text-xs mb-4"
+                  style={{ color: "rgba(183,110,121,0.6)" }}
+                >
+                  This goal will be permanently removed.
+                </p>
+                <p className="text-xs mb-2" style={{ color: "#722f37" }}>
+                  Type <strong>i love you</strong> to confirm
+                </p>
+                <input
+                  type="text"
+                  value={deleteItemConfirm}
+                  onChange={(e) => setDeleteItemConfirm(e.target.value)}
+                  placeholder="i love you"
+                  className="input-field text-sm w-full mb-4"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleDeleteItem(deletingItem.id);
+                  }}
+                />
+                <div className="flex gap-3 justify-center">
+                  <button
+                    onClick={() => handleDeleteItem(deletingItem.id)}
+                    className="text-sm px-5 py-2 rounded-pill text-white"
+                    style={{ backgroundColor: "#722f37" }}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDeletingItem(null);
+                      setDeleteItemConfirm("");
+                    }}
+                    className="text-sm px-5 py-2 rounded-pill border border-rose/20 hover:bg-blush"
+                    style={{ color: "#b76e79" }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Media Viewer Modal */}
           {viewingImage && (

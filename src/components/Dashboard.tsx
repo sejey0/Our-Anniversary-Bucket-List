@@ -1074,7 +1074,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
           />
 
           {/* Modal */}
-          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-xl overflow-hidden animate-fade-in">
+          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in">
             {/* Modal Header */}
             <div
               className="px-6 py-4 border-b"
@@ -1087,7 +1087,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
             </div>
 
             {/* Modal Body */}
-            <div className="px-6 py-5 space-y-4">
+            <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
               {/* Date */}
               <div>
                 <label

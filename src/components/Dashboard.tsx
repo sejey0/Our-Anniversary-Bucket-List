@@ -34,7 +34,12 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   const [renameValue, setRenameValue] = useState("");
   const [deletingList, setDeletingList] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [completingItem, setCompletingItem] = useState<BucketItem | null>(null);
+  const [completeDesc, setCompleteDesc] = useState("");
+  const [completePhoto, setCompletePhoto] = useState<string | null>(null);
+  const [completeDate, setCompleteDate] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const completeFileRef = useRef<HTMLInputElement>(null);
 
   // Load custom bucket lists from localStorage
   useEffect(() => {
@@ -137,17 +142,52 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   };
 
   const handleToggleComplete = async (item: BucketItem) => {
-    const newStatus = item.status === "Completed" ? "Not Started" : "Completed";
+    if (item.status === "Completed") {
+      // Undo completion
+      try {
+        const res = await fetch(`/api/buckets/${item.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "Not Started" }),
+        });
+        if (!res.ok) throw new Error("Failed to update");
+        fetchItems();
+      } catch {
+        toast.error("Failed to update");
+      }
+    } else {
+      // Open completion modal
+      setCompletingItem(item);
+      setCompleteDesc("");
+      setCompletePhoto(null);
+      setCompleteDate(new Date().toISOString().split("T")[0]);
+    }
+  };
+
+  const handleConfirmComplete = async () => {
+    if (!completingItem) return;
     try {
-      const res = await fetch(`/api/buckets/${item.id}`, {
+      const updateData: Record<string, unknown> = {
+        status: "Completed",
+        description: completeDesc.trim() || completingItem.description,
+        completed_at: completeDate ? new Date(completeDate).toISOString() : new Date().toISOString(),
+      };
+      if (completePhoto) {
+        updateData.photo_url = completePhoto;
+      }
+      const res = await fetch(`/api/buckets/${completingItem.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify(updateData),
       });
       if (!res.ok) throw new Error("Failed to update");
+      toast.success("Marked as done!");
+      setCompletingItem(null);
+      setCompleteDesc("");
+      setCompletePhoto(null);
       fetchItems();
     } catch {
-      toast.error("Failed to update");
+      toast.error("Failed to complete");
     }
   };
 
@@ -850,34 +890,35 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                           border: "1px solid rgba(232,160,160,0.15)",
                         }}
                       >
-                        <div className="flex items-center gap-3">
-                          {/* Completed checkbox */}
-                          <div
-                            className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                            style={{ backgroundColor: "#b76e79" }}
-                          >
-                            <svg
-                              className="w-3 h-3 text-white"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              strokeWidth={3}
-                              stroke="currentColor"
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            {/* Completed checkbox */}
+                            <div
+                              className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                              style={{ backgroundColor: "#b76e79" }}
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M4.5 12.75l6 6 9-13.5"
-                              />
-                            </svg>
-                          </div>
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={3}
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M4.5 12.75l6 6 9-13.5"
+                                />
+                              </svg>
+                            </div>
 
-                          {/* Title */}
-                          <span className="flex-1 text-sm line-through text-rose-gold/40 truncate">
-                            {item.title}
-                          </span>
+                            {/* Title */}
+                            <span className="flex-1 text-sm line-through text-rose-gold/40 truncate">
+                              {item.title}
+                            </span>
 
-                          {/* Actions */}
-                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {/* Actions */}
+                            <div className="flex items-center gap-1 flex-shrink-0">
                             {/* View photo/video */}
                             {item.photo_url && (
                               <button
@@ -939,6 +980,28 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                               </svg>
                             </button>
                           </div>
+                        </div>
+
+                          {/* Date and Description */}
+                          {(item.completed_at || item.description) && (
+                            <div className="ml-8 mt-1.5 space-y-1">
+                              {item.completed_at && (
+                                <p className="text-xs" style={{ color: "rgba(183,110,121,0.6)" }}>
+                                  Completed on{" "}
+                                  {new Date(item.completed_at).toLocaleDateString("en-US", {
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                  })}
+                                </p>
+                              )}
+                              {item.description && (
+                                <p className="text-xs" style={{ color: "#722f37" }}>
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </li>
                     ))}
@@ -1034,6 +1097,20 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                 <p className="text-sm truncate" style={{ color: "#b76e79" }}>
                                   {item.title}
                                 </p>
+                                {item.description && (
+                                  <p className="text-xs mt-1 line-clamp-2" style={{ color: "rgba(114,47,55,0.6)" }}>
+                                    {item.description}
+                                  </p>
+                                )}
+                                {item.completed_at && (
+                                  <p className="text-xs mt-0.5" style={{ color: "rgba(183,110,121,0.5)" }}>
+                                    {new Date(item.completed_at).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    })}
+                                  </p>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -1088,6 +1165,20 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                 <p className="text-sm truncate" style={{ color: "#b76e79" }}>
                                   {item.title}
                                 </p>
+                                {item.description && (
+                                  <p className="text-xs mt-1 line-clamp-2" style={{ color: "rgba(114,47,55,0.6)" }}>
+                                    {item.description}
+                                  </p>
+                                )}
+                                {item.completed_at && (
+                                  <p className="text-xs mt-0.5" style={{ color: "rgba(183,110,121,0.5)" }}>
+                                    {new Date(item.completed_at).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    })}
+                                  </p>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -1107,6 +1198,150 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         </div>
       )}
 
+      {/* Completion Modal */}
+      {completingItem && (
+        <div className="fixed inset-0 z-[55] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={() => {
+              setCompletingItem(null);
+              setCompleteDesc("");
+              setCompletePhoto(null);
+            }}
+          />
+
+          {/* Modal */}
+          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in">
+            {/* Modal Header */}
+            <div
+              className="px-6 py-4 border-b"
+              style={{ backgroundColor: "#b76e79" }}
+            >
+              <h2 className="text-lg font-bold text-white">
+                Mark as Done
+              </h2>
+              <p className="text-xs text-white/70 mt-0.5">
+                {completingItem.title}
+              </p>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 py-5 space-y-4">
+              {/* Date */}
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: "#b76e79" }}>
+                  Date Completed
+                </label>
+                <input
+                  type="date"
+                  value={completeDate}
+                  onChange={(e) => setCompleteDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl text-sm outline-none transition-all duration-300"
+                  style={{
+                    backgroundColor: "rgba(183,110,121,0.08)",
+                    border: "1px solid rgba(183,110,121,0.15)",
+                    color: "#722f37",
+                  }}
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: "#b76e79" }}>
+                  Description / Notes
+                </label>
+                <textarea
+                  value={completeDesc}
+                  onChange={(e) => setCompleteDesc(e.target.value)}
+                  placeholder="How was the experience? Any memorable moments..."
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-xl text-sm outline-none resize-none transition-all duration-300"
+                  style={{
+                    border: "1px solid rgba(183,110,121,0.2)",
+                    color: "#722f37",
+                  }}
+                />
+              </div>
+
+              {/* Photo Upload (Optional) */}
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: "#b76e79" }}>
+                  Photo (optional)
+                </label>
+                {completePhoto ? (
+                  <div className="relative">
+                    <img
+                      src={completePhoto}
+                      alt="Preview"
+                      className="w-full h-36 object-cover rounded-xl"
+                      style={{ border: "1px solid rgba(183,110,121,0.2)" }}
+                    />
+                    <button
+                      onClick={() => setCompletePhoto(null)}
+                      className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 text-xs"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => completeFileRef.current?.click()}
+                    className="w-full py-4 rounded-xl text-sm flex flex-col items-center gap-1 transition-all duration-300 hover:bg-blush/30"
+                    style={{
+                      border: "1px dashed rgba(183,110,121,0.3)",
+                      color: "rgba(183,110,121,0.6)",
+                    }}
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"
+                      />
+                    </svg>
+                    Upload a photo
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-rose/10 flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setCompletingItem(null);
+                  setCompleteDesc("");
+                  setCompletePhoto(null);
+                }}
+                className="px-4 py-2 text-sm rounded-pill border border-rose/20 hover:bg-blush transition-all duration-300"
+                style={{ color: "#b76e79" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmComplete}
+                className="px-5 py-2 text-sm font-semibold rounded-pill text-white transition-all duration-300 hover:opacity-90"
+                style={{ backgroundColor: "#b76e79" }}
+              >
+                Mark as Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hidden File Input */}
       <input
         ref={fileInputRef}
@@ -1120,6 +1355,29 @@ export default function Dashboard({ onLogout }: DashboardProps) {
           }
           e.target.value = "";
           setUploadingItemId(null);
+        }}
+      />
+
+      {/* Hidden File Input for Completion Photo */}
+      <input
+        ref={completeFileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            if (file.size > 10 * 1024 * 1024) {
+              toast.error("File must be under 10MB");
+              return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+              setCompletePhoto(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+          }
+          e.target.value = "";
         }}
       />
 

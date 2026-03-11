@@ -42,7 +42,7 @@ export async function PUT(
     if (body.status !== undefined) {
       updateData.status = body.status;
       if (body.status === "Completed") {
-        updateData.completed_at = new Date().toISOString();
+        updateData.completed_at = body.completed_at || new Date().toISOString();
       } else {
         updateData.completed_at = null;
       }

@@ -67,6 +67,10 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       }
       const data = await res.json();
       setItems(data);
+      try {
+        const lite = data.map((item: BucketItem) => ({ ...item, photo_url: null }));
+        localStorage.setItem("cached-items", JSON.stringify(lite));
+      } catch { /* quota exceeded, ignore */ }
     } catch (err) {
       console.error("Fetch items error:", err);
       toast.error(err instanceof Error ? err.message : "Failed to load items");
@@ -75,7 +79,15 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     }
   }, []);
 
+  // Load cached items instantly, then refresh from server
   useEffect(() => {
+    const cached = localStorage.getItem("cached-items");
+    if (cached) {
+      try {
+        setItems(JSON.parse(cached));
+        setIsLoading(false);
+      } catch { /* ignore bad cache */ }
+    }
     fetchItems();
   }, [fetchItems]);
 
@@ -369,7 +381,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                       setNewListName("");
                       setNewListDesc("");
                     }}
-                    className="px-4 py-2 text-sm rounded-pill border border-rose/20 text-rose-gold hover:bg-blush transition-all duration-300"
+                    className="px-4 py-2 text-sm rounded-pill border border-rose/20 text-rose-gold hover:bg-blush transition-colors duration-150"
                   >
                     Cancel
                   </button>
@@ -436,7 +448,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                               setRenamingList(null);
                               setRenameValue("");
                             }}
-                            className="text-xs px-2 py-1 rounded-pill border border-rose/20 hover:bg-blush transition-all duration-300"
+                            className="text-xs px-2 py-1 rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
                             style={{ color: "#b76e79" }}
                           >
                             Cancel
@@ -463,7 +475,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                             setRenamingList(list.id);
                             setRenameValue(list.name);
                           }}
-                          className="p-1 rounded-lg hover:bg-blush/50 transition-all duration-300"
+                          className="p-1 rounded-lg hover:bg-blush/50 transition-colors duration-150"
                           style={{ color: "#b76e79" }}
                           title="Rename"
                         >
@@ -487,7 +499,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                             setDeletingList(list.id);
                             setDeleteConfirm("");
                           }}
-                          className="p-1 rounded-lg hover:bg-red-50 transition-all duration-300"
+                          className="p-1 rounded-lg hover:bg-red-50 transition-colors duration-150"
                           style={{ color: "#722f37" }}
                           title="Delete"
                         >
@@ -541,7 +553,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                         />
                         <button
                           type="submit"
-                          className="text-xs px-3 py-1.5 rounded-pill text-white transition-all duration-300"
+                          className="text-xs px-3 py-1.5 rounded-pill text-white transition-colors duration-150"
                           style={{ backgroundColor: "#722f37" }}
                         >
                           Delete
@@ -552,7 +564,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                             setDeletingList(null);
                             setDeleteConfirm("");
                           }}
-                          className="text-xs px-3 py-1.5 rounded-pill border border-rose/20 hover:bg-blush transition-all duration-300"
+                          className="text-xs px-3 py-1.5 rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
                           style={{ color: "#b76e79" }}
                         >
                           Cancel
@@ -608,7 +620,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setViewingList(list)}
-                      className="flex-1 py-2 text-xs font-semibold rounded-pill border border-rose/20 hover:bg-blush transition-all duration-300"
+                      className="flex-1 py-2 text-xs font-semibold rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
                       style={{ color: "#b76e79" }}
                     >
                       View List ({categoryItems.length - completedCount})
@@ -616,7 +628,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                     {completedCount > 0 && (
                       <button
                         onClick={() => setViewingCompleted(list)}
-                        className="flex-1 py-2 text-xs font-semibold rounded-pill transition-all duration-300 text-white"
+                        className="flex-1 py-2 text-xs font-semibold rounded-pill transition-colors duration-150 text-white"
                         style={{ backgroundColor: "#b76e79" }}
                       >
                         Completed ({completedCount})
@@ -635,7 +647,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/40"
             onClick={() => {
               setViewingList(null);
               setEditingItem(null);
@@ -643,7 +655,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
           />
 
           {/* Modal */}
-          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden animate-fade-in">
+          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
             {/* Modal Header */}
             <div
               className="px-6 py-4 flex items-center justify-between border-b"
@@ -734,7 +746,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                       .map((item) => (
                         <li
                           key={item.id}
-                          className="p-3 rounded-xl bg-white hover:bg-blush/20 transition-all duration-300"
+                          className="p-3 rounded-xl bg-white hover:bg-blush/20 transition-colors duration-150"
                           style={{
                             border: "1px solid rgba(232,160,160,0.15)",
                           }}
@@ -743,7 +755,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                             {/* Checkbox */}
                             <button
                               onClick={() => handleToggleComplete(item)}
-                              className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-300"
+                              className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors duration-150"
                               style={{
                                 borderColor: "rgba(232,160,160,0.4)",
                               }}
@@ -781,7 +793,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                       setEditingItem(null);
                                       setEditTitle("");
                                     }}
-                                    className="text-xs px-2 py-1 rounded-pill border border-rose/20 text-rose-gold hover:bg-blush transition-all duration-300"
+                                    className="text-xs px-2 py-1 rounded-pill border border-rose/20 text-rose-gold hover:bg-blush transition-colors duration-150"
                                   >
                                     Cancel
                                   </button>
@@ -801,7 +813,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                     setEditingItem(item.id);
                                     setEditTitle(item.title);
                                   }}
-                                  className="p-1.5 rounded-lg hover:bg-blush/50 transition-all duration-300"
+                                  className="p-1.5 rounded-lg hover:bg-blush/50 transition-colors duration-150"
                                   style={{ color: "#b76e79" }}
                                   title="Edit"
                                 >
@@ -821,7 +833,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                 </button>
                                 <button
                                   onClick={() => handleDeleteItem(item.id)}
-                                  className="p-1.5 rounded-lg hover:bg-red-50 transition-all duration-300"
+                                  className="p-1.5 rounded-lg hover:bg-red-50 transition-colors duration-150"
                                   style={{ color: "#722f37" }}
                                   title="Delete"
                                 >
@@ -874,12 +886,12 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/40"
             onClick={() => setViewingCompleted(null)}
           />
 
           {/* Modal */}
-          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden animate-fade-in">
+          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden">
             {/* Modal Header */}
             <div
               className="px-6 py-5 flex items-center justify-between border-b"
@@ -935,7 +947,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                     .map((item) => (
                       <li
                         key={item.id}
-                        className="p-3.5 rounded-xl bg-petal/50 transition-all duration-300"
+                        className="p-3.5 rounded-xl bg-petal/50 transition-colors duration-150"
                         style={{
                           border: "1px solid rgba(232,160,160,0.15)",
                         }}
@@ -972,7 +984,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                               {/* View gallery */}
                               <button
                                 onClick={() => setViewingGalleryItem(item)}
-                                className="p-1.5 rounded-lg hover:bg-blush/50 transition-all duration-300"
+                                className="p-1.5 rounded-lg hover:bg-blush/50 transition-colors duration-150"
                                 style={{ color: "#b76e79" }}
                                 title="View details"
                               >
@@ -1001,7 +1013,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                   setUploadingItemId(item.id);
                                   fileInputRef.current?.click();
                                 }}
-                                className="p-1.5 rounded-lg hover:bg-blush/50 transition-all duration-300"
+                                className="p-1.5 rounded-lg hover:bg-blush/50 transition-colors duration-150"
                                 style={{ color: "#b76e79" }}
                                 title={
                                   getMediaUrls(item.photo_url).length > 0
@@ -1076,7 +1088,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         <div className="fixed inset-0 z-[55] flex items-center justify-center p-4">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/40"
             onClick={() => {
               setCompletingItem(null);
               setCompleteDesc("");
@@ -1085,7 +1097,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
           />
 
           {/* Modal */}
-          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in">
+          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden">
             {/* Modal Header */}
             <div
               className="px-6 py-4 border-b"
@@ -1111,7 +1123,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                   type="date"
                   value={completeDate}
                   onChange={(e) => setCompleteDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-sm outline-none transition-all duration-300"
+                  className="w-full px-3 py-2 rounded-xl text-sm outline-none transition-colors duration-150"
                   style={{
                     backgroundColor: "rgba(183,110,121,0.08)",
                     border: "1px solid rgba(183,110,121,0.15)",
@@ -1133,7 +1145,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                   onChange={(e) => setCompleteDesc(e.target.value)}
                   placeholder="How was the experience? Any memorable moments..."
                   rows={3}
-                  className="w-full px-3 py-2 rounded-xl text-sm outline-none resize-none transition-all duration-300"
+                  className="w-full px-3 py-2 rounded-xl text-sm outline-none resize-none transition-colors duration-150"
                   style={{
                     border: "1px solid rgba(183,110,121,0.2)",
                     color: "#722f37",
@@ -1187,7 +1199,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                 )}
                 <button
                   onClick={() => completeFileRef.current?.click()}
-                  className="w-full py-4 rounded-xl text-sm flex flex-col items-center gap-1 transition-all duration-300 hover:bg-blush/30"
+                  className="w-full py-4 rounded-xl text-sm flex flex-col items-center gap-1 transition-colors duration-150 hover:bg-blush/30"
                   style={{
                     border: "1px dashed rgba(183,110,121,0.3)",
                     color: "rgba(183,110,121,0.6)",
@@ -1226,14 +1238,14 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                   setCompleteDesc("");
                   setCompletePhotos([]);
                 }}
-                className="px-4 py-2 text-sm rounded-pill border border-rose/20 hover:bg-blush transition-all duration-300"
+                className="px-4 py-2 text-sm rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
                 style={{ color: "#b76e79" }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmComplete}
-                className="px-5 py-2 text-sm font-semibold rounded-pill text-white transition-all duration-300 hover:opacity-90"
+                className="px-5 py-2 text-sm font-semibold rounded-pill text-white transition-colors duration-150 hover:opacity-90"
                 style={{ backgroundColor: "#b76e79" }}
               >
                 Mark as Done
@@ -1248,12 +1260,12 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         <div className="fixed inset-0 z-[55] flex items-center justify-center p-4">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/40"
             onClick={() => setViewingGalleryItem(null)}
           />
 
           {/* Modal */}
-          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden animate-fade-in">
+          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden">
             {/* Modal Header */}
             <div
               className="px-6 py-5 flex items-center justify-between border-b"
@@ -1345,7 +1357,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                           {images.map((url, idx) => (
                             <div
                               key={idx}
-                              className="rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-all duration-300"
+                              className="rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-colors duration-150"
                               style={{
                                 border: "1px solid rgba(232,160,160,0.2)",
                               }}
@@ -1375,7 +1387,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                           {videos.map((url, idx) => (
                             <div
                               key={idx}
-                              className="rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-all duration-300"
+                              className="rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-colors duration-150"
                               style={{
                                 border: "1px solid rgba(232,160,160,0.2)",
                               }}

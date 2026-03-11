@@ -85,7 +85,10 @@ CREATE TABLE IF NOT EXISTS checklist_items (
   sort_order INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  user_id TEXT DEFAULT 'default'
+  user_id TEXT DEFAULT 'default',
+  completed_at TIMESTAMPTZ,
+  description TEXT DEFAULT '',
+  photo_url TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_checklist_items_checklist_id ON checklist_items(checklist_id);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import toast from "react-hot-toast";
 import { ChecklistGroup, ChecklistItem } from "@/types/bucket";
 
@@ -14,13 +14,24 @@ export default function ChecklistDashboard() {
   const [newItems, setNewItems] = useState<Record<string, string>>({});
   const [viewingChecklist, setViewingChecklist] =
     useState<ChecklistGroup | null>(null);
+  const [viewingCompleted, setViewingCompleted] =
+    useState<ChecklistGroup | null>(null);
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [renamingList, setRenamingList] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [renameDesc, setRenameDesc] = useState("");
+  const [editingListDesc, setEditingListDesc] = useState<string | null>(null);
+  const [editListDescValue, setEditListDescValue] = useState("");
   const [deletingList, setDeletingList] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [editCounts, setEditCounts] = useState<Record<string, number>>({});
+  const [completingItem, setCompletingItem] = useState<ChecklistItem | null>(
+    null,
+  );
+  const [completeDesc, setCompleteDesc] = useState("");
+  const [completePhotos, setCompletePhotos] = useState<string[]>([]);
+  const [completeDate, setCompleteDate] = useState("");
+  const completeFileRef = useRef<HTMLInputElement>(null);
 
   const fetchChecklists = useCallback(async () => {
     try {
@@ -110,6 +121,16 @@ export default function ChecklistDashboard() {
     }
   };
 
+  const getEditCount = (id: string, field: string) =>
+    editCounts[`${id}-${field}`] || 0;
+  const canEdit = (id: string, field: string) => getEditCount(id, field) < 3;
+  const incrementEditCount = (id: string, field: string) => {
+    setEditCounts((prev) => ({
+      ...prev,
+      [`${id}-${field}`]: (prev[`${id}-${field}`] || 0) + 1,
+    }));
+  };
+
   const handleRenameChecklist = async (id: string) => {
     if (!renameValue.trim()) {
       toast.error("Name cannot be empty");
@@ -117,26 +138,46 @@ export default function ChecklistDashboard() {
     }
     const original = checklists;
     const newName = renameValue.trim();
-    const newDesc = renameDesc.trim();
     setChecklists(
-      checklists.map((l) =>
-        l.id === id ? { ...l, name: newName, description: newDesc } : l,
-      ),
+      checklists.map((l) => (l.id === id ? { ...l, name: newName } : l)),
     );
     setRenamingList(null);
     setRenameValue("");
-    setRenameDesc("");
-    toast.success("Updated!");
+    incrementEditCount(id, "name");
+    toast.success("Name updated!");
     try {
       const res = await fetch(`/api/checklists/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName, description: newDesc }),
+        body: JSON.stringify({ name: newName }),
       });
       if (!res.ok) throw new Error("Failed to update");
     } catch {
       setChecklists(original);
-      toast.error("Failed to update checklist");
+      toast.error("Failed to update name");
+    }
+  };
+
+  const handleEditListDesc = async (id: string) => {
+    const original = checklists;
+    const newDesc = editListDescValue.trim();
+    setChecklists(
+      checklists.map((l) => (l.id === id ? { ...l, description: newDesc } : l)),
+    );
+    setEditingListDesc(null);
+    setEditListDescValue("");
+    incrementEditCount(id, "description");
+    toast.success("Description updated!");
+    try {
+      const res = await fetch(`/api/checklists/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: newDesc }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+    } catch {
+      setChecklists(original);
+      toast.error("Failed to update description");
     }
   };
 
@@ -157,6 +198,9 @@ export default function ChecklistDashboard() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       user_id: "default",
+      completed_at: null,
+      description: "",
+      photo_url: null,
     };
     setChecklistItems((prev) => [...prev, tempItem]);
     setNewItems((prev) => ({ ...prev, [checklistId]: "" }));
@@ -180,23 +224,93 @@ export default function ChecklistDashboard() {
 
   const handleToggleItem = async (item: ChecklistItem) => {
     const newStatus = !item.is_completed;
+    if (newStatus) {
+      // Opening completion modal instead of toggling directly
+      setCompletingItem(item);
+      setCompleteDesc("");
+      setCompletePhotos([]);
+      setCompleteDate(new Date().toISOString().split("T")[0]);
+    } else {
+      // Uncompleting - toggle directly
+      setChecklistItems((prev) =>
+        prev.map((i) =>
+          i.id === item.id
+            ? {
+                ...i,
+                is_completed: false,
+                completed_at: null,
+                description: "",
+                photo_url: null,
+              }
+            : i,
+        ),
+      );
+      try {
+        const res = await fetch(`/api/checklist-items/${item.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            is_completed: false,
+            completed_at: null,
+            description: "",
+            photo_url: null,
+          }),
+        });
+        if (!res.ok) throw new Error("Failed to update");
+      } catch {
+        setChecklistItems((prev) =>
+          prev.map((i) => (i.id === item.id ? item : i)),
+        );
+        toast.error("Failed to update");
+      }
+    }
+  };
+
+  const handleConfirmComplete = async () => {
+    if (!completingItem) return;
+    const completedAt = completeDate
+      ? new Date(completeDate).toISOString()
+      : new Date().toISOString();
+    const desc = completeDesc.trim();
+    const photoUrl =
+      completePhotos.length > 0 ? JSON.stringify(completePhotos) : null;
+    const original = completingItem;
     setChecklistItems((prev) =>
       prev.map((i) =>
-        i.id === item.id ? { ...i, is_completed: newStatus } : i,
+        i.id === completingItem.id
+          ? {
+              ...i,
+              is_completed: true,
+              description: desc,
+              completed_at: completedAt,
+              photo_url: photoUrl,
+            }
+          : i,
       ),
     );
+    toast.success("Marked as done!");
+    setCompletingItem(null);
+    setCompleteDesc("");
+    setCompletePhotos([]);
     try {
-      const res = await fetch(`/api/checklist-items/${item.id}`, {
+      const updateData: Record<string, unknown> = {
+        is_completed: true,
+        description: desc,
+        completed_at: completedAt,
+      };
+      if (completePhotos.length > 0)
+        updateData.photo_url = JSON.stringify(completePhotos);
+      const res = await fetch(`/api/checklist-items/${original.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_completed: newStatus }),
+        body: JSON.stringify(updateData),
       });
       if (!res.ok) throw new Error("Failed to update");
     } catch {
       setChecklistItems((prev) =>
-        prev.map((i) => (i.id === item.id ? item : i)),
+        prev.map((i) => (i.id === original.id ? original : i)),
       );
-      toast.error("Failed to update");
+      toast.error("Failed to complete");
     }
   };
 
@@ -225,6 +339,7 @@ export default function ChecklistDashboard() {
     setChecklistItems((prev) =>
       prev.map((i) => (i.id === id ? { ...i, title: newTitle } : i)),
     );
+    incrementEditCount(id, "title");
     toast.success("Updated!");
     setEditingItem(null);
     setEditTitle("");
@@ -352,114 +467,178 @@ export default function ChecklistDashboard() {
                   {/* Card Header */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 min-w-0">
+                      {/* Editable Name */}
                       {renamingList === list.id ? (
                         <form
                           onSubmit={(e) => {
                             e.preventDefault();
                             handleRenameChecklist(list.id);
                           }}
-                          className="space-y-2"
+                          className="flex gap-2 mb-1"
                         >
                           <input
                             type="text"
                             value={renameValue}
                             onChange={(e) => setRenameValue(e.target.value)}
                             placeholder="Name"
-                            className="input-field w-full text-sm py-1"
+                            className="input-field flex-1 text-sm py-1"
                             autoFocus
                           />
-                          <input
-                            type="text"
-                            value={renameDesc}
-                            onChange={(e) => setRenameDesc(e.target.value)}
-                            placeholder="Description (optional)"
-                            className="input-field w-full text-sm py-1"
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              type="submit"
-                              className="btn-primary text-xs px-3 py-1"
-                            >
-                              Save
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setRenamingList(null);
-                                setRenameValue("");
-                                setRenameDesc("");
-                              }}
-                              className="text-xs px-2 py-1 rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
-                              style={{ color: "#b76e79" }}
-                            >
-                              Cancel
-                            </button>
-                          </div>
+                          <button
+                            type="submit"
+                            className="btn-primary text-xs px-3 py-1"
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRenamingList(null);
+                              setRenameValue("");
+                            }}
+                            className="text-xs px-2 py-1 rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
+                            style={{ color: "#b76e79" }}
+                          >
+                            Cancel
+                          </button>
                         </form>
                       ) : (
-                        <>
-                          <h2 className="text-base font-bold text-gradient">
+                        <div className="flex items-center gap-1.5">
+                          <h2 className="text-base font-bold text-gradient truncate">
                             {list.name}
                           </h2>
-                          {list.description && (
-                            <p className="text-xs text-rose-gold/50 mt-0.5">
+                          {canEdit(list.id, "name") && (
+                            <button
+                              onClick={() => {
+                                setRenamingList(list.id);
+                                setRenameValue(list.name);
+                              }}
+                              className="p-0.5 rounded-lg hover:bg-blush/50 transition-colors duration-150 flex-shrink-0"
+                              style={{ color: "#b76e79" }}
+                              title={`Edit name (${3 - getEditCount(list.id, "name")} left)`}
+                            >
+                              <svg
+                                className="w-3.5 h-3.5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={1.5}
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"
+                                />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Editable Description */}
+                      {editingListDesc === list.id ? (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleEditListDesc(list.id);
+                          }}
+                          className="flex gap-2 mt-1"
+                        >
+                          <input
+                            type="text"
+                            value={editListDescValue}
+                            onChange={(e) =>
+                              setEditListDescValue(e.target.value)
+                            }
+                            placeholder="Description"
+                            className="input-field flex-1 text-xs py-1"
+                            autoFocus
+                          />
+                          <button
+                            type="submit"
+                            className="btn-primary text-xs px-3 py-1"
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingListDesc(null);
+                              setEditListDescValue("");
+                            }}
+                            className="text-xs px-2 py-1 rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
+                            style={{ color: "#b76e79" }}
+                          >
+                            Cancel
+                          </button>
+                        </form>
+                      ) : (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {list.description ? (
+                            <p className="text-xs text-rose-gold/50 truncate">
                               {list.description}
                             </p>
+                          ) : (
+                            <p className="text-xs text-rose-gold/30 italic">
+                              No description
+                            </p>
                           )}
-                        </>
+                          {canEdit(list.id, "description") && (
+                            <button
+                              onClick={() => {
+                                setEditingListDesc(list.id);
+                                setEditListDescValue(list.description || "");
+                              }}
+                              className="p-0.5 rounded-lg hover:bg-blush/50 transition-colors duration-150 flex-shrink-0"
+                              style={{ color: "#b76e79" }}
+                              title={`Edit description (${3 - getEditCount(list.id, "description")} left)`}
+                            >
+                              <svg
+                                className="w-3 h-3"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={1.5}
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"
+                                />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
-                    {renamingList !== list.id && (
-                      <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                        <button
-                          onClick={() => {
-                            setRenamingList(list.id);
-                            setRenameValue(list.name);
-                            setRenameDesc(list.description || "");
-                          }}
-                          className="p-1 rounded-lg hover:bg-blush/50 transition-colors duration-150"
-                          style={{ color: "#b76e79" }}
-                          title="Edit"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth={1.5}
-                            stroke="currentColor"
+                    {renamingList !== list.id &&
+                      editingListDesc !== list.id && (
+                        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                          <button
+                            onClick={() => {
+                              setDeletingList(list.id);
+                              setDeleteConfirm("");
+                            }}
+                            className="p-1 rounded-lg hover:bg-red-50 transition-colors duration-150"
+                            style={{ color: "#722f37" }}
+                            title="Delete"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setDeletingList(list.id);
-                            setDeleteConfirm("");
-                          }}
-                          className="p-1 rounded-lg hover:bg-red-50 transition-colors duration-150"
-                          style={{ color: "#722f37" }}
-                          title="Delete"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth={1.5}
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    )}
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={1.5}
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
                   </div>
 
                   {/* Created Date */}
@@ -578,14 +757,25 @@ export default function ChecklistDashboard() {
                     </button>
                   </form>
 
-                  {/* View Button */}
-                  <button
-                    onClick={() => setViewingChecklist(list)}
-                    className="w-full py-2 text-xs font-semibold rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
-                    style={{ color: "#b76e79" }}
-                  >
-                    View All ({listItems.length})
-                  </button>
+                  {/* View Buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setViewingChecklist(list)}
+                      className="flex-1 py-2 text-xs font-semibold rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
+                      style={{ color: "#b76e79" }}
+                    >
+                      View List ({listItems.length - completedCount})
+                    </button>
+                    {completedCount > 0 && (
+                      <button
+                        onClick={() => setViewingCompleted(list)}
+                        className="flex-1 py-2 text-xs font-semibold rounded-pill transition-colors duration-150 text-white"
+                        style={{ backgroundColor: "#b76e79" }}
+                      >
+                        Completed ({completedCount})
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -672,7 +862,9 @@ export default function ChecklistDashboard() {
 
             {/* Items List */}
             <div className="flex-1 overflow-y-auto px-6 py-3">
-              {getItemsByChecklist(viewingChecklist.id).length === 0 ? (
+              {getItemsByChecklist(viewingChecklist.id).filter(
+                (i) => !i.is_completed,
+              ).length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-sm text-rose-gold/40 italic">
                     No items yet. Add one above!
@@ -680,31 +872,246 @@ export default function ChecklistDashboard() {
                 </div>
               ) : (
                 <ul className="space-y-2">
-                  {getItemsByChecklist(viewingChecklist.id).map((item) => (
-                    <li
-                      key={item.id}
-                      className="p-3 rounded-xl bg-white hover:bg-blush/20 transition-colors duration-150"
-                      style={{ border: "1px solid rgba(232,160,160,0.15)" }}
-                    >
-                      <div className="flex items-center gap-3">
-                        {/* Checkbox */}
-                        <button
-                          onClick={() => handleToggleItem(item)}
-                          className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-colors duration-150 ${
-                            item.is_completed ? "" : "border-2"
-                          }`}
-                          style={
-                            item.is_completed
-                              ? { backgroundColor: "#b76e79" }
-                              : { borderColor: "rgba(232,160,160,0.4)" }
-                          }
-                          title={
-                            item.is_completed
-                              ? "Mark as undone"
-                              : "Mark as done"
-                          }
-                        >
-                          {item.is_completed && (
+                  {getItemsByChecklist(viewingChecklist.id)
+                    .filter((i) => !i.is_completed)
+                    .map((item) => (
+                      <li
+                        key={item.id}
+                        className="p-3 rounded-xl bg-white hover:bg-blush/20 transition-colors duration-150"
+                        style={{ border: "1px solid rgba(232,160,160,0.15)" }}
+                      >
+                        <div className="flex items-center gap-3">
+                          {/* Checkbox */}
+                          <button
+                            onClick={() => handleToggleItem(item)}
+                            className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-colors duration-150 ${
+                              item.is_completed ? "" : "border-2"
+                            }`}
+                            style={
+                              item.is_completed
+                                ? { backgroundColor: "#b76e79" }
+                                : { borderColor: "rgba(232,160,160,0.4)" }
+                            }
+                            title={
+                              item.is_completed
+                                ? "Mark as undone"
+                                : "Mark as done"
+                            }
+                          >
+                            {item.is_completed && (
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={3}
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M4.5 12.75l6 6 9-13.5"
+                                />
+                              </svg>
+                            )}
+                          </button>
+
+                          {/* Title or Edit */}
+                          <div className="flex-1 min-w-0">
+                            {editingItem === item.id ? (
+                              <form
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  handleEditItem(item.id);
+                                }}
+                                className="flex gap-2"
+                              >
+                                <input
+                                  type="text"
+                                  value={editTitle}
+                                  onChange={(e) => setEditTitle(e.target.value)}
+                                  className="input-field flex-1 text-sm py-1"
+                                  autoFocus
+                                />
+                                <button
+                                  type="submit"
+                                  className="btn-primary text-xs px-3 py-1"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingItem(null);
+                                    setEditTitle("");
+                                  }}
+                                  className="text-xs px-2 py-1 rounded-pill border border-rose/20 text-rose-gold hover:bg-blush transition-colors duration-150"
+                                >
+                                  Cancel
+                                </button>
+                              </form>
+                            ) : (
+                              <span
+                                className={`text-sm block truncate ${
+                                  item.is_completed
+                                    ? "line-through text-rose-gold/40"
+                                    : "text-wine"
+                                }`}
+                              >
+                                {item.title}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Actions */}
+                          {editingItem !== item.id && (
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {canEdit(item.id, "title") && (
+                                <button
+                                  onClick={() => {
+                                    setEditingItem(item.id);
+                                    setEditTitle(item.title);
+                                  }}
+                                  className="p-1.5 rounded-lg hover:bg-blush/50 transition-colors duration-150"
+                                  style={{ color: "#b76e79" }}
+                                  title={`Edit (${3 - getEditCount(item.id, "title")} left)`}
+                                >
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={1.5}
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"
+                                    />
+                                  </svg>
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDeleteItem(item.id)}
+                                className="p-1.5 rounded-lg hover:bg-red-50 transition-colors duration-150"
+                                style={{ color: "#722f37" }}
+                                title="Delete"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  strokeWidth={1.5}
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            {getItemsByChecklist(viewingChecklist.id).length > 0 && (
+              <div
+                className="px-6 py-3 border-t border-rose/10 text-center text-xs font-semibold"
+                style={{ color: "#b76e79" }}
+              >
+                {
+                  getItemsByChecklist(viewingChecklist.id).filter(
+                    (i) => !i.is_completed,
+                  ).length
+                }{" "}
+                remaining
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Completed Modal */}
+      {viewingCompleted && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setViewingCompleted(null)}
+          />
+
+          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div
+              className="px-6 py-5 flex items-center justify-between border-b"
+              style={{ backgroundColor: "#b76e79" }}
+            >
+              <div>
+                <h2 className="text-xl font-bold text-white">
+                  {viewingCompleted.name} — Completed
+                </h2>
+                <p className="text-sm text-white/70 mt-0.5">
+                  {
+                    getItemsByChecklist(viewingCompleted.id).filter(
+                      (i) => i.is_completed,
+                    ).length
+                  }{" "}
+                  tasks done
+                </p>
+              </div>
+              <button
+                onClick={() => setViewingCompleted(null)}
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Completed Items List */}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {getItemsByChecklist(viewingCompleted.id).filter(
+                (i) => i.is_completed,
+              ).length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-sm text-rose-gold/40 italic">
+                    No completed tasks yet.
+                  </p>
+                </div>
+              ) : (
+                <ul className="space-y-2.5">
+                  {getItemsByChecklist(viewingCompleted.id)
+                    .filter((i) => i.is_completed)
+                    .map((item) => (
+                      <li
+                        key={item.id}
+                        className="p-3.5 rounded-xl bg-petal/50 transition-colors duration-150"
+                        style={{
+                          border: "1px solid rgba(232,160,160,0.15)",
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          {/* Completed checkbox */}
+                          <div
+                            className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: "#b76e79" }}
+                          >
                             <svg
                               className="w-3 h-3 text-white"
                               fill="none"
@@ -718,128 +1125,265 @@ export default function ChecklistDashboard() {
                                 d="M4.5 12.75l6 6 9-13.5"
                               />
                             </svg>
-                          )}
-                        </button>
+                          </div>
 
-                        {/* Title or Edit */}
-                        <div className="flex-1 min-w-0">
-                          {editingItem === item.id ? (
-                            <form
-                              onSubmit={(e) => {
-                                e.preventDefault();
-                                handleEditItem(item.id);
-                              }}
-                              className="flex gap-2"
+                          {/* Title */}
+                          <span className="flex-1 text-sm line-through text-rose-gold/40 truncate">
+                            {item.title}
+                          </span>
+
+                          {/* Undo button */}
+                          <button
+                            onClick={() => handleToggleItem(item)}
+                            className="p-1.5 rounded-lg hover:bg-blush/50 transition-colors duration-150"
+                            style={{ color: "#b76e79" }}
+                            title="Mark as undone"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={1.5}
+                              stroke="currentColor"
                             >
-                              <input
-                                type="text"
-                                value={editTitle}
-                                onChange={(e) => setEditTitle(e.target.value)}
-                                className="input-field flex-1 text-sm py-1"
-                                autoFocus
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"
                               />
-                              <button
-                                type="submit"
-                                className="btn-primary text-xs px-3 py-1"
-                              >
-                                Save
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingItem(null);
-                                  setEditTitle("");
-                                }}
-                                className="text-xs px-2 py-1 rounded-pill border border-rose/20 text-rose-gold hover:bg-blush transition-colors duration-150"
-                              >
-                                Cancel
-                              </button>
-                            </form>
-                          ) : (
-                            <span
-                              className={`text-sm block truncate ${
-                                item.is_completed
-                                  ? "line-through text-rose-gold/40"
-                                  : "text-wine"
-                              }`}
-                            >
-                              {item.title}
-                            </span>
-                          )}
+                            </svg>
+                          </button>
                         </div>
 
-                        {/* Actions */}
-                        {editingItem !== item.id && (
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            <button
-                              onClick={() => {
-                                setEditingItem(item.id);
-                                setEditTitle(item.title);
-                              }}
-                              className="p-1.5 rounded-lg hover:bg-blush/50 transition-colors duration-150"
-                              style={{ color: "#b76e79" }}
-                              title="Edit"
-                            >
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                strokeWidth={1.5}
-                                stroke="currentColor"
+                        {/* Date and Description */}
+                        {(item.completed_at || item.description) && (
+                          <div className="ml-8 mt-1.5 space-y-1">
+                            {item.completed_at && (
+                              <p
+                                className="text-xs"
+                                style={{
+                                  color: "rgba(183,110,121,0.6)",
+                                }}
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"
-                                />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => handleDeleteItem(item.id)}
-                              className="p-1.5 rounded-lg hover:bg-red-50 transition-colors duration-150"
-                              style={{ color: "#722f37" }}
-                              title="Delete"
-                            >
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                strokeWidth={1.5}
-                                stroke="currentColor"
+                                Completed on{" "}
+                                {new Date(item.completed_at).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                  },
+                                )}
+                              </p>
+                            )}
+                            {item.description && (
+                              <p
+                                className="text-xs"
+                                style={{ color: "#722f37" }}
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                                />
-                              </svg>
-                            </button>
+                                {item.description}
+                              </p>
+                            )}
                           </div>
                         )}
-                      </div>
-                    </li>
-                  ))}
+                      </li>
+                    ))}
                 </ul>
               )}
             </div>
-
-            {/* Modal Footer */}
-            {getItemsByChecklist(viewingChecklist.id).length > 0 && (
-              <div
-                className="px-6 py-3 border-t border-rose/10 text-center text-xs font-semibold"
-                style={{ color: "#b76e79" }}
-              >
-                {
-                  getItemsByChecklist(viewingChecklist.id).filter(
-                    (i) => i.is_completed,
-                  ).length
-                }
-                /{getItemsByChecklist(viewingChecklist.id).length} completed
-              </div>
-            )}
           </div>
         </div>
       )}
+
+      {/* Completion Modal */}
+      {completingItem && (
+        <div className="fixed inset-0 z-[55] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => {
+              setCompletingItem(null);
+              setCompleteDesc("");
+              setCompletePhotos([]);
+            }}
+          />
+
+          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div
+              className="px-6 py-4 border-b"
+              style={{ backgroundColor: "#b76e79" }}
+            >
+              <h2 className="text-lg font-bold text-white">Mark as Done</h2>
+              <p className="text-xs text-white/70 mt-0.5">
+                {completingItem.title}
+              </p>
+            </div>
+
+            <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+              <div>
+                <label
+                  className="block text-xs font-semibold mb-1.5"
+                  style={{ color: "#b76e79" }}
+                >
+                  Date Completed
+                </label>
+                <input
+                  type="date"
+                  value={completeDate}
+                  onChange={(e) => setCompleteDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl text-sm outline-none transition-colors duration-150"
+                  style={{
+                    backgroundColor: "rgba(183,110,121,0.08)",
+                    border: "1px solid rgba(183,110,121,0.15)",
+                    color: "#722f37",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label
+                  className="block text-xs font-semibold mb-1.5"
+                  style={{ color: "#b76e79" }}
+                >
+                  Description / Notes
+                </label>
+                <textarea
+                  value={completeDesc}
+                  onChange={(e) => setCompleteDesc(e.target.value)}
+                  placeholder="How was the experience? Any memorable moments..."
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-xl text-sm outline-none resize-none transition-colors duration-150"
+                  style={{
+                    border: "1px solid rgba(183,110,121,0.2)",
+                    color: "#722f37",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label
+                  className="block text-xs font-semibold mb-1.5"
+                  style={{ color: "#b76e79" }}
+                >
+                  Photos / Videos (optional)
+                </label>
+                {completePhotos.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mb-2">
+                    {completePhotos.map((photo, idx) => (
+                      <div key={idx} className="relative group">
+                        {photo.startsWith("data:video/") ? (
+                          <video
+                            src={photo}
+                            className="w-full h-24 object-cover rounded-lg"
+                            style={{
+                              border: "1px solid rgba(183,110,121,0.2)",
+                            }}
+                          />
+                        ) : (
+                          <img
+                            src={photo}
+                            alt={`Upload ${idx + 1}`}
+                            className="w-full h-24 object-cover rounded-lg"
+                            style={{
+                              border: "1px solid rgba(183,110,121,0.2)",
+                            }}
+                          />
+                        )}
+                        <button
+                          onClick={() =>
+                            setCompletePhotos((prev) =>
+                              prev.filter((_, i) => i !== idx),
+                            )
+                          }
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button
+                  onClick={() => completeFileRef.current?.click()}
+                  className="w-full py-4 rounded-xl text-sm flex flex-col items-center gap-1 transition-colors duration-150 hover:bg-blush/30"
+                  style={{
+                    border: "1px dashed rgba(183,110,121,0.3)",
+                    color: "rgba(183,110,121,0.6)",
+                  }}
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"
+                    />
+                  </svg>
+                  {completePhotos.length > 0
+                    ? "Add more photos or videos"
+                    : "Upload a photo or video"}
+                </button>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-rose/10 flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setCompletingItem(null);
+                  setCompleteDesc("");
+                  setCompletePhotos([]);
+                }}
+                className="px-4 py-2 text-sm rounded-pill border border-rose/20 hover:bg-blush transition-colors duration-150"
+                style={{ color: "#b76e79" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmComplete}
+                className="px-5 py-2 text-sm font-semibold rounded-pill text-white transition-colors duration-150 hover:opacity-90"
+                style={{ backgroundColor: "#b76e79" }}
+              >
+                Mark as Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden File Input for Completion Photo */}
+      <input
+        ref={completeFileRef}
+        type="file"
+        accept="image/*,video/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          const files = e.target.files;
+          if (files) {
+            Array.from(files).forEach((file) => {
+              if (file.size > 10 * 1024 * 1024) {
+                toast.error(`${file.name} is over 10MB`);
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = () => {
+                setCompletePhotos((prev) => [...prev, reader.result as string]);
+              };
+              reader.readAsDataURL(file);
+            });
+          }
+          e.target.value = "";
+        }}
+      />
     </>
   );
 }

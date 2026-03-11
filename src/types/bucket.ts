@@ -77,6 +77,9 @@ export interface ChecklistItem {
   created_at: string;
   updated_at: string;
   user_id: string;
+  completed_at: string | null;
+  description: string;
+  photo_url: string | null;
 }
 
 export const PRIORITY_COLORS: Record<string, string> = {

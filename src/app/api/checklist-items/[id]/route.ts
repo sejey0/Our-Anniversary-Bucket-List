@@ -14,6 +14,11 @@ export async function PUT(
     if (body.is_completed !== undefined)
       updateData.is_completed = body.is_completed;
     if (body.sort_order !== undefined) updateData.sort_order = body.sort_order;
+    if (body.completed_at !== undefined)
+      updateData.completed_at = body.completed_at;
+    if (body.description !== undefined)
+      updateData.description = body.description;
+    if (body.photo_url !== undefined) updateData.photo_url = body.photo_url;
 
     const { data, error } = await supabase
       .from("checklist_items")

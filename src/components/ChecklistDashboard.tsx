@@ -567,7 +567,7 @@ export default function ChecklistDashboard() {
                   />
                   <p
                     className="text-[10px] mt-0.5"
-                    style={{ color: "rgba(183,110,121,0.6)" }}
+                    style={{ color: "rgba(183,110,121,0.8)" }}
                   >
                     Target date (optional)
                   </p>
@@ -603,7 +603,7 @@ export default function ChecklistDashboard() {
             <h3 className="text-xl font-bold text-gradient mb-2">
               No checklists yet
             </h3>
-            <p className="text-xs text-rose-gold/50">
+            <p className="text-xs text-rose-gold/65">
               Create your first checklist to start tracking tasks together
             </p>
           </div>
@@ -668,7 +668,7 @@ export default function ChecklistDashboard() {
                                 {list.target_date && (
                                   <span
                                     className="text-xs font-normal ml-1"
-                                    style={{ color: "rgba(183,110,121,0.7)" }}
+                                    style={{ color: "rgba(183,110,121,0.85)" }}
                                   >
                                     (
                                     {new Date(
@@ -817,11 +817,11 @@ export default function ChecklistDashboard() {
                       ) : (
                         <div className="flex items-center gap-1.5 mt-0.5">
                           {list.description ? (
-                            <p className="text-xs text-rose-gold/50 truncate">
+                            <p className="text-xs text-rose-gold/65 truncate">
                               {list.description}
                             </p>
                           ) : (
-                            <p className="text-xs text-rose-gold/30 italic">
+                            <p className="text-xs text-rose-gold/50 italic">
                               No description
                             </p>
                           )}
@@ -886,7 +886,7 @@ export default function ChecklistDashboard() {
 
                   {/* Created Date */}
                   {list.created_at && (
-                    <p className="text-xs text-rose-gold/40 mb-2">
+                    <p className="text-xs text-rose-gold/60 mb-2">
                       Created{" "}
                       {new Date(list.created_at).toLocaleDateString("en-US", {
                         year: "numeric",
@@ -948,7 +948,7 @@ export default function ChecklistDashboard() {
                   {/* Progress Bar */}
                   <div className="mb-3">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-rose-gold/60">
+                      <span className="text-xs text-rose-gold/70">
                         {completedCount}/{listItems.length} done
                       </span>
                       <span
@@ -1109,7 +1109,7 @@ export default function ChecklistDashboard() {
                 (i) => !i.is_completed,
               ).length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-sm text-rose-gold/40 italic">
+                  <p className="text-sm text-rose-gold/60 italic">
                     No items yet. Add one above!
                   </p>
                 </div>
@@ -1196,7 +1196,7 @@ export default function ChecklistDashboard() {
                               <span
                                 className={`text-sm block truncate ${
                                   item.is_completed
-                                    ? "line-through text-rose-gold/40"
+                                    ? "line-through text-rose-gold/55"
                                     : "text-wine"
                                 }`}
                               >
@@ -1336,7 +1336,7 @@ export default function ChecklistDashboard() {
                 (i) => i.is_completed,
               ).length === 0 ? (
                 <div className="text-center py-10">
-                  <p className="text-sm text-rose-gold/40 italic">
+                  <p className="text-sm text-rose-gold/60 italic">
                     No completed tasks yet.
                   </p>
                 </div>
@@ -1374,7 +1374,7 @@ export default function ChecklistDashboard() {
                           </div>
 
                           {/* Title */}
-                          <span className="flex-1 text-sm line-through text-rose-gold/40 truncate">
+                          <span className="flex-1 text-sm line-through text-rose-gold/55 truncate">
                             {item.title}
                           </span>
 
@@ -1437,7 +1437,7 @@ export default function ChecklistDashboard() {
                               <p
                                 className="text-xs"
                                 style={{
-                                  color: "rgba(183,110,121,0.6)",
+                                  color: "rgba(183,110,121,0.8)",
                                 }}
                               >
                                 Completed on{" "}
@@ -1582,7 +1582,7 @@ export default function ChecklistDashboard() {
                   className="w-full py-4 rounded-xl text-sm flex flex-col items-center gap-1 transition-colors duration-150 hover:bg-blush/30"
                   style={{
                     border: "1px dashed rgba(183,110,121,0.3)",
-                    color: "rgba(183,110,121,0.6)",
+                    color: "rgba(183,110,121,0.8)",
                   }}
                 >
                   <svg
@@ -1801,7 +1801,7 @@ export default function ChecklistDashboard() {
                   </p>
                 ) : canEdit(viewingDetailItem.id, "notes") ? (
                   <p
-                    className="text-sm text-rose-gold/30 italic cursor-pointer hover:text-rose-gold/50 transition-colors"
+                    className="text-sm text-rose-gold/50 italic cursor-pointer hover:text-rose-gold/70 transition-colors"
                     onClick={() => {
                       setEditingNotes(true);
                       setEditNotesValue("");
@@ -1810,7 +1810,7 @@ export default function ChecklistDashboard() {
                     No notes yet. Click to add.
                   </p>
                 ) : (
-                  <p className="text-sm text-rose-gold/30 italic">
+                  <p className="text-sm text-rose-gold/50 italic">
                     No notes added.
                   </p>
                 )}
@@ -1949,7 +1949,7 @@ export default function ChecklistDashboard() {
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm text-rose-gold/30 italic">
+                  <p className="text-sm text-rose-gold/50 italic">
                     No photos or videos added.
                   </p>
                 )}
@@ -1978,7 +1978,7 @@ export default function ChecklistDashboard() {
             </p>
             <p
               className="text-xs mb-4"
-              style={{ color: "rgba(183,110,121,0.6)" }}
+              style={{ color: "rgba(183,110,121,0.8)" }}
             >
               This item will be permanently removed.
             </p>
@@ -2038,7 +2038,7 @@ export default function ChecklistDashboard() {
             </p>
             <p
               className="text-xs mb-4"
-              style={{ color: "rgba(183,110,121,0.6)" }}
+              style={{ color: "rgba(183,110,121,0.8)" }}
             >
               This will clear the completion date, notes, and photos.
             </p>

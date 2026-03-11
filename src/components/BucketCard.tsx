@@ -90,7 +90,7 @@ export default function BucketCard({
           <div className="flex items-start justify-between gap-2">
             <h3
               className={`font-semibold text-wine ${
-                isCompleted ? "line-through text-rose-gold/50" : ""
+                isCompleted ? "line-through text-rose-gold/60" : ""
               }`}
             >
               {CATEGORY_EMOJIS[item.category] || "📌"} {item.title}
@@ -158,7 +158,7 @@ export default function BucketCard({
 
           {item.description && (
             <p
-              className={`text-sm text-rose-gold/60 mt-1 ${isCompleted ? "line-through" : ""}`}
+              className={`text-sm text-rose-gold/70 mt-1 ${isCompleted ? "line-through" : ""}`}
             >
               {item.description}
             </p>

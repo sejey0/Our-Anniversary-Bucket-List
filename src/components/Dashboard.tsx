@@ -788,7 +788,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                       />
                       <p
                         className="text-[10px] mt-0.5"
-                        style={{ color: "rgba(183,110,121,0.6)" }}
+                        style={{ color: "rgba(183,110,121,0.8)" }}
                       >
                         Target date (optional)
                       </p>
@@ -887,7 +887,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                       <span
                                         className="text-xs font-normal ml-1"
                                         style={{
-                                          color: "rgba(183,110,121,0.7)",
+                                          color: "rgba(183,110,121,0.85)",
                                         }}
                                       >
                                         (
@@ -1621,7 +1621,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                     <p
                                       className="text-xs"
                                       style={{
-                                        color: "rgba(183,110,121,0.6)",
+                                        color: "rgba(183,110,121,0.8)",
                                       }}
                                     >
                                       Completed on{" "}
@@ -1773,7 +1773,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                       className="w-full py-4 rounded-xl text-sm flex flex-col items-center gap-1 transition-colors duration-150 hover:bg-blush/30"
                       style={{
                         border: "1px dashed rgba(183,110,121,0.3)",
-                        color: "rgba(183,110,121,0.6)",
+                        color: "rgba(183,110,121,0.8)",
                       }}
                     >
                       <svg
@@ -2057,7 +2057,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                     ) : (
                       <p
                         className={`text-sm italic ${canEdit(viewingGalleryItem.id, "notes") ? "cursor-pointer hover:underline" : ""}`}
-                        style={{ color: "rgba(183,110,121,0.4)" }}
+                        style={{ color: "rgba(183,110,121,0.65)" }}
                         onClick={() => {
                           if (canEdit(viewingGalleryItem.id, "notes")) {
                             setEditingNotes(true);
@@ -2341,7 +2341,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                       <div className="text-center py-8">
                         <p
                           className="text-sm italic"
-                          style={{ color: "rgba(183,110,121,0.4)" }}
+                          style={{ color: "rgba(183,110,121,0.65)" }}
                         >
                           No details or media for this goal yet.
                         </p>
@@ -2482,7 +2482,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                 </p>
                 <p
                   className="text-xs mb-4"
-                  style={{ color: "rgba(183,110,121,0.6)" }}
+                  style={{ color: "rgba(183,110,121,0.8)" }}
                 >
                   This goal will be permanently removed.
                 </p>
